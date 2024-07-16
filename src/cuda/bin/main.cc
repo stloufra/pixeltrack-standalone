@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "../plugin-PixelTriplets/defs.h"
 
 #include <tbb/global_control.h>
 #include <tbb/info.h>
@@ -237,5 +238,10 @@ int main(int argc, char** argv) {
   std::cout << "Processed " << maxEvents << " events in " << std::scientific << time << " seconds, throughput "
             << std::defaultfloat << (maxEvents / time) << " events/s, CPU usage per thread: " << std::fixed
             << std::setprecision(1) << (cpu / time / numberOfThreads * 100) << "%" << std::endl;
+
+#ifdef __TIME__KERNELS__BROKENLINE
+  std::cout << "Time taken:\n Triplets; \t " << globalTimeTriplets.count() << "\n Quads; \t " << globalTimeQuads.count() << "\n Penta; \t" << globalTimePenta.count() <<"\n";
+#endif
+
   return EXIT_SUCCESS;
 }

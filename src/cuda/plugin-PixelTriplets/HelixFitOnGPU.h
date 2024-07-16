@@ -21,13 +21,19 @@ namespace Rfit {
   using Matrix3xNd = Eigen::Matrix<double, 3, N>;
   template <int N>
   using Map3xNd = Eigen::Map<Matrix3xNd<N>, 0, Eigen::Stride<3 * stride(), stride()> >;
+  template <int N>
+  using Map3xNdNoStride = Eigen::Map<Matrix3xNd<N>>;
   // errors
   template <int N>
   using Matrix6xNf = Eigen::Matrix<float, 6, N>;
   template <int N>
   using Map6xNf = Eigen::Map<Matrix6xNf<N>, 0, Eigen::Stride<6 * stride(), stride()> >;
+  template <int N>
+  using Map6xNfNoStride = Eigen::Map<Matrix6xNf<N>>;
   // fast fit
   using Map4d = Eigen::Map<Vector4d, 0, Eigen::InnerStride<stride()> >;
+  using Map4dNoStride = Eigen::Map<Vector4d>;
+  using Vector4d = Eigen::Vector4d;
 
 }  // namespace Rfit
 

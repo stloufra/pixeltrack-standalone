@@ -12,9 +12,8 @@
 #include "CUDACore/cudaCheck.h"
 #include "CUDACore/cuda_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
-#include "defs.h"
 
-#include "BrokenLineGPU.h"
+#include "BrokenLineCPU.h"
 #include "HelixFitOnGPU.h"
 
 using HitsOnGPU = TrackingRecHit2DSOAView;
@@ -67,7 +66,6 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
     Rfit::Map4d fast_fit(pfast_fit + local_idx);
     Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-
 #ifdef BL_DUMP_HITS
     __shared__ int done;
     done = 0;
@@ -117,9 +115,6 @@ __global__ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
   }
 }
 
-
-
-
 template <int N>
 __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
                             double B,
@@ -136,121 +131,35 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
   // same as above...
 
-  // number of threads in tile.
-  constexpr unsigned int HitsToTileThreads[6] = {2, 2, 2, 4, 4, 8};  // Maximum of 5 hits for now
-  const auto NumberOfThreadsPerTile = HitsToTileThreads[N];
-
-  //cooperative group magic
-  namespace cg = cooperative_groups;
-  cg::thread_block block = cg::this_thread_block();
-  cg::thread_block_tile<NumberOfThreadsPerTile> tile = cg::tiled_partition<NumberOfThreadsPerTile>(block);
-
-  // need to introduce const expresion for initialization of shared matrixes
-
-  assert(__NUMBER_OF_BLOCKS == tile.meta_group_size());
-
-
   // look in bin for this hit multiplicity
-  auto local_start = block.group_index().x * tile.meta_group_size() + tile.meta_group_rank();
-
+  auto local_start = blockIdx.x * blockDim.x + threadIdx.x;
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += gridDim.x * tile.meta_group_size()) {
+       local_idx += gridDim.x * blockDim.x) {
+    auto tuple_idx = local_idx + offset;
+    if (tuple_idx >= tupleMultiplicity->size(nHits))
+      break;
 
+    // get it for the ntuple container (one to one to helix)
+    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
 
-      auto tuple_idx = local_idx + offset;
-      if (tuple_idx >= tupleMultiplicity->size(nHits))
-        break;
+    Rfit::Map3xNd<N> hits(phits + local_idx);
+    Rfit::Map4d fast_fit(pfast_fit + local_idx);
+    Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
-      // get it for the ntuple container (one to one to helix)
+    BrokenLine::PreparedBrokenLineData<N> data;
+    Rfit::Matrix3d Jacob;
 
-      auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
+    BrokenLine::karimaki_circle_fit circle;
+    Rfit::line_fit line;
 
-      //DATA PREP
-#ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
-      Rfit::Map3xNd<N> Ghits(phits + local_idx);  //global memory map
-      Rfit::Map4d Gfast_fit(pfast_fit + local_idx);
-      Rfit::Map6xNf<N> Ghits_ge(phits_ge + local_idx);
+    BrokenLine::prepareBrokenLineData(hits, fast_fit, B, data);
+    BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data, line);
+    BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
-      __shared__ Rfit::Matrix3xNd<N> hits[__NUMBER_OF_BLOCKS];  //shared memory
-      __shared__ Eigen::Vector4d fast_fit[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::Matrix6xNf<N> hits_ge[__NUMBER_OF_BLOCKS];
-
-
-      auto tileId = tile.meta_group_rank();
-
-      hits[tileId] = Ghits;
-      fast_fit[tileId] = Gfast_fit;
-      hits_ge[tileId] = Ghits_ge;
-#else
-      auto tileId = tile.meta_group_rank();
-
-      Rfit::Map3xNd<N> hits(phits + local_idx);  //global memory map
-      Rfit::Map4d fast_fit(pfast_fit + local_idx);
-      Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
-
-#endif
-
-
-      //structs for functions - prepare
-      __shared__ Rfit::Matrix2xNd<N> pointsSZ[__NUMBER_OF_BLOCKS];
-
-      //structs for functions - line fit
-      __shared__ Rfit::VectorNd<N> w[__NUMBER_OF_BLOCKS]; //used for circle fit as well
-      __shared__ Rfit::VectorNd<N> r_u[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::MatrixNd<N> C_U[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix3d jacobian[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix3d holder[__NUMBER_OF_BLOCKS];//used for circle fit as well
-
-
-    //structs for functions -  circle fit
-      __shared__ Rfit::VectorNplusONEd<N> r_uc[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::MatrixNplusONEd<N> C_Uc[__NUMBER_OF_BLOCKS];
-
-#ifdef __BROKEN_LINE_WITH_SHARED_LINGEBRA
-#else
-#endif
-
-
-      //PROCESS
-      Rfit::Matrix3d Jacob;
-#ifdef __BROKEN_LINE_WITH_SHARED_OUTPUTS
-      __shared__ BrokenLine::PreparedBrokenLineData<N> data[__NUMBER_OF_BLOCKS];  //shared memory;
-
-      __shared__ BrokenLine::karimaki_circle_fit circle[__NUMBER_OF_BLOCKS];  //shared memory;
-      __shared__ Rfit::line_fit line[__NUMBER_OF_BLOCKS];                     //shared memory;
-#else
-      BrokenLine::PreparedBrokenLineData<N> data;
-
-      BrokenLine::karimaki_circle_fit circle;
-      Rfit::line_fit line;
-#endif
-
-#ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
-
-      BrokenLine::prepareBrokenLineData(hits[tileId], fast_fit[tileId], B, data[tileId], tile, pointsSZ[tileId]);
-
-      BrokenLine::BL_Line_fit(hits_ge[tileId], fast_fit[tileId], B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], tile);
-
-      BrokenLine::BL_Circle_fit(hits[tileId], hits_ge[tileId], fast_fit[tileId], B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian[tileId], holder[tileId], tile);
-
-    if(tile.thread_rank() ==0) {
-#else
-
-      BrokenLine::prepareBrokenLineData(hits, fast_fit, B, data[tileId], tile, pointsSZ[tileId]);
-
-      BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], tile);
-      BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], tile);
-
-    if(tile.thread_rank() ==0) {
-#endif
-
-
-      results->stateAtBS.copyFromCircle(circle[tileId].par, circle[tileId].cov, line[tileId].par, line[tileId].cov, 1.f / float(B), tkid);
-      results->pt(tkid) = float(B) / float(std::abs(circle[tileId].par(2)));
-      results->eta(tkid) = asinhf(line[tileId].par(0));
-      results->chi2(tkid) = (circle[tileId].chi2 + line[tileId].chi2) / (2 * N - 5);
-
-    }
+    results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
+    results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
+    results->eta(tkid) = asinhf(line.par(0));
+    results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 
 #ifdef BROKENLINE_DEBUG
     if (!(circle.chi2 >= 0) || !(line.chi2 >= 0))
@@ -274,4 +183,3 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 #endif
   }
 }
-

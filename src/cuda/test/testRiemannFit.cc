@@ -4,7 +4,7 @@
 #include <Eigen/Eigenvalues>
 
 #ifdef USE_BL
-#include "plugin-PixelTriplets/BrokenLine.h"
+#include "plugin-PixelTriplets/BrokenLineCPU.h"
 #else
 #include "plugin-PixelTriplets/RiemannFit.h"
 #endif
