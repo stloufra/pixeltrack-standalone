@@ -7,22 +7,32 @@
 
 #include <chrono>
 
-extern std::chrono::duration<double> globalTimeTriplets(0) ;
-extern std::chrono::duration<double> globalTimeQuads(0) ;
-extern std::chrono::duration<double> globalTimePenta(0) ;
-
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
 
+//Memory (switch only inputs)
 #define __BROKEN_LINE_WITH_SHARED_INPUTS
 #define __BROKEN_LINE_WITH_SHARED_OUTPUTS
 #define __BROKEN_LINE_WITH_SHARED_LINGEBRA
 
+
 #define __BROKEN_LINE_ALL_THREADS
-
-
 #define  __NUMBER_OF_BLOCKS  8
 
-#define __TIME__KERNELS__BROKENLINE
+//time
+//#define __TIME__KERNELS__BROKENLINE
+
+#ifdef __TIME__KERNELS__BROKENLINE
+extern std::chrono::duration<double> globalTimeTriplets(0) ;
+extern std::chrono::duration<double> globalTimeQuads(0) ;
+extern std::chrono::duration<double> globalTimePenta(0) ;
+#endif
+
+
+//Multiplication (only one)
+//#define __MULTIPLY_MULTIPLE_STEPS_PARALLEL
+#define __MULTIPLY_ONE_STEP_PARALLEL
+//#define __MULTIPLY_SERIAL
+
 
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
 

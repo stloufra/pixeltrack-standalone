@@ -73,8 +73,8 @@ CUDA_LIBDIR := $(CUDA_BASE)/lib64
 USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
-export CUDA_ARCH := 50 60 70
-export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include
+export CUDA_ARCH := 70 86
+export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include #-I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include -I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/external/cutlass/include -I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include/cublasdx/include
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
 export CUDA_NVCC := $(CUDA_BASE)/bin/nvcc
@@ -271,7 +271,7 @@ EXTERNAL_BASE := $(BASE_DIR)/external
 
 HWLOC_BASE := $(EXTERNAL_BASE)/hwloc
 export HWLOC_DEPS := $(HWLOC_BASE)
-HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
+HWLOC_CXXFLAGS := -I $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
 
 # TBB from external
@@ -287,7 +287,7 @@ TBB_CMAKEFLAGS := -DCMAKE_INSTALL_PREFIX=$(TBB_BASE) \
                   -DCMAKE_HWLOC_2_LIBRARY_PATH=$(HWLOC_BASE)/lib/libhwloc.so \
                   -DTBB_CPF=ON
 export TBB_DEPS := $(TBB_LIB)
-export TBB_CXXFLAGS := -isystem $(TBB_BASE)/include -DTBB_SUPPRESS_DEPRECATED_MESSAGES -DTBB_PREVIEW_NUMA_SUPPORT -DTBB_PREVIEW_TASK_GROUP_EXTENSIONS
+export TBB_CXXFLAGS := -I $(TBB_BASE)/include -DTBB_SUPPRESS_DEPRECATED_MESSAGES -DTBB_PREVIEW_NUMA_SUPPORT -DTBB_PREVIEW_TASK_GROUP_EXTENSIONS
 export TBB_LDFLAGS := -L$(TBB_LIBDIR) -ltbb
 export TBB_NVCC_CXXFLAGS :=
 export TBB_SYCL_CXXFLAGS :=
@@ -300,7 +300,7 @@ endif
 
 EIGEN_BASE := $(EXTERNAL_BASE)/eigen
 export EIGEN_DEPS := $(EIGEN_BASE)
-export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
+export EIGEN_CXXFLAGS := -I $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCXX_CXXFLAGS := -DEIGEN_USE_GPU -DEIGEN_UNROLLING_LIMIT=64
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
@@ -323,20 +323,20 @@ ifeq ($(NEED_BOOST),true)
 BOOST_BASE := $(EXTERNAL_BASE)/boost
 endif
 export BOOST_DEPS := $(BOOST_BASE)
-export BOOST_CXXFLAGS := -isystem $(BOOST_BASE)/include
+export BOOST_CXXFLAGS := -I $(BOOST_BASE)/include
 export BOOST_LDFLAGS := -L$(BOOST_BASE)/lib
 export BOOST_NVCC_CXXFLAGS :=
 export BOOST_SYCL_CXXFLAGS :=
 
 BACKTRACE_BASE := $(EXTERNAL_BASE)/libbacktrace
 export BACKTRACE_DEPS := $(BACKTRACE_BASE)
-export BACKTRACE_CXXFLAGS := -isystem $(BACKTRACE_BASE)/include
+export BACKTRACE_CXXFLAGS := -I $(BACKTRACE_BASE)/include
 export BACKTRACE_LDFLAGS := -L$(BACKTRACE_BASE)/lib -lbacktrace
 export BACKTRACE_SYCL_CXXFLAGS :=
 
 ALPAKA_BASE := $(EXTERNAL_BASE)/alpaka
 export ALPAKA_DEPS := $(ALPAKA_BASE)
-export ALPAKA_CXXFLAGS := -isystem $(ALPAKA_BASE)/include
+export ALPAKA_CXXFLAGS := -I $(ALPAKA_BASE)/include
 
 KOKKOS_BASE := $(EXTERNAL_BASE)/kokkos
 KOKKOS_SRC := $(KOKKOS_BASE)/source
@@ -374,7 +374,7 @@ else ifeq ($(KOKKOS_HIP_ARCH),VEGA909)
 else
   $(error Unsupported KOKKOS_HIP_ARCH $(KOKKOS_HIP_ARCH). Likely it is sufficient just add another case in the Makefile)
 endif
-export KOKKOS_CXXFLAGS := -isystem $(KOKKOS_INSTALL)/include
+export KOKKOS_CXXFLAGS := -I $(KOKKOS_INSTALL)/include
 $(eval $(call CUFLAGS_template,$(KOKKOS_CUDA_ARCH),KOKKOS_))
 export KOKKOS_LDFLAGS := -L$(KOKKOS_INSTALL)/lib -lkokkoscore -ldl
 export KOKKOS_NVCC_CXXFLAGS := -Wno-deprecated-gpu-targets

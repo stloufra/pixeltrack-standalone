@@ -198,8 +198,8 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
       __shared__ Rfit::VectorNd<N> w[__NUMBER_OF_BLOCKS]; //used for circle fit as well
       __shared__ Rfit::VectorNd<N> r_u[__NUMBER_OF_BLOCKS];
       __shared__ Rfit::MatrixNd<N> C_U[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix3d jacobian[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix3d holder[__NUMBER_OF_BLOCKS];//used for circle fit as well
+
+
 
 
     //structs for functions -  circle fit
@@ -207,12 +207,21 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
       __shared__ Rfit::MatrixNplusONEd<N> C_Uc[__NUMBER_OF_BLOCKS];
 
 #ifdef __BROKEN_LINE_WITH_SHARED_LINGEBRA
+      __shared__ Rfit::Matrix3d jacobian3[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      __shared__ Rfit::Matrix3d holder3[__NUMBER_OF_BLOCKS];//used for circle fit as well
+
+      __shared__ Rfit::Matrix2d jacobian2[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      __shared__ Rfit::Matrix2d holder2[__NUMBER_OF_BLOCKS];//used for circle fit as well
 #else
+      Rfit::Matrix3d jacobian[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      Rfit::Matrix3d holder[__NUMBER_OF_BLOCKS];//used for circle fit as well
+
+      Rfit::Matrix2d jacobian[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      Rfit::Matrix2d holder[__NUMBER_OF_BLOCKS];//used for circle fit as well
 #endif
 
 
       //PROCESS
-      Rfit::Matrix3d Jacob;
 #ifdef __BROKEN_LINE_WITH_SHARED_OUTPUTS
       __shared__ BrokenLine::PreparedBrokenLineData<N> data[__NUMBER_OF_BLOCKS];  //shared memory;
 
@@ -229,9 +238,9 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
       BrokenLine::prepareBrokenLineData(hits[tileId], fast_fit[tileId], B, data[tileId], tile, pointsSZ[tileId]);
 
-      BrokenLine::BL_Line_fit(hits_ge[tileId], fast_fit[tileId], B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], tile);
+      BrokenLine::BL_Line_fit(hits_ge[tileId], fast_fit[tileId], B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
 
-      BrokenLine::BL_Circle_fit(hits[tileId], hits_ge[tileId], fast_fit[tileId], B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian[tileId], holder[tileId], tile);
+      BrokenLine::BL_Circle_fit(hits[tileId], hits_ge[tileId], fast_fit[tileId], B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
 
     if(tile.thread_rank() ==0) {
 #else
