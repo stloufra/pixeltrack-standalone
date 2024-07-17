@@ -45,12 +45,14 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     auto endTrip = time::now();
 #endif
     // fit quads
-    kernelBLFastFit<4><<<numberOfBlocks / 4, blockSize, 0, stream>>>(
+    kernelBLFastFit<4><<<numberOfBlocks /*/ 4*/, blockSize, 0, stream>>>(
         tuples_d, tupleMultiplicity_d, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), 4, offset);
     cudaCheck(cudaGetLastError());
-
+#ifdef __TIME__KERNELS__BROKENLINE
     auto startQuad = time::now();
-    kernelBLFit<4><<<numberOfBlocks / 4, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
+#endif
+
+    kernelBLFit<4><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
                                                                  bField_,
                                                                  outputSoa_d,
                                                                  hitsGPU_.get(),
@@ -66,13 +68,13 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 #endif
     if (fit5as4_) {
       // fit penta (only first 4)
-      kernelBLFastFit<4><<<numberOfBlocks / 4, blockSize, 0, stream>>>(
+      kernelBLFastFit<4><<<numberOfBlocks /*/ 4*/, blockSize, 0, stream>>>(
           tuples_d, tupleMultiplicity_d, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), 5, offset);
       cudaCheck(cudaGetLastError());
 
 
 
-      kernelBLFit<4><<<numberOfBlocks / 4, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
+      kernelBLFit<4><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
                                                                    bField_,
                                                                    outputSoa_d,
                                                                    hitsGPU_.get(),
@@ -85,12 +87,12 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
     } else {
       // fit penta (all 5)
-      kernelBLFastFit<5><<<numberOfBlocks / 4, blockSize, 0, stream>>>(
+      kernelBLFastFit<5><<<numberOfBlocks /*/ 4*/, blockSize, 0, stream>>>(
           tuples_d, tupleMultiplicity_d, hv, hitsGPU_.get(), hits_geGPU_.get(), fast_fit_resultsGPU_.get(), 5, offset);
       cudaCheck(cudaGetLastError());
 
 
-      kernelBLFit<5><<<numberOfBlocks / 4, __NUMBER_OF_BLOCKS*8, 0, stream>>>(tupleMultiplicity_d,
+      kernelBLFit<5><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*8, 0, stream>>>(tupleMultiplicity_d,
                                                                    bField_,
                                                                    outputSoa_d,
                                                                    hitsGPU_.get(),
@@ -114,8 +116,5 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
   }  // loop on concurrent fits
 
-#ifdef __TIME__KERNELS__BROKENLINE
-  std::cout << "Time taken:\n Triplets; \t " << globalTimeTriplets.count() << "\n Quads; \t " << globalTimeQuads.count() << "\n Penta; \t" << globalTimePenta.count() <<"\n";
-#endif
 
 }
