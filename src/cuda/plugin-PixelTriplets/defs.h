@@ -10,7 +10,7 @@
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
 
 //Memory (switch only inputs)
-#define __BROKEN_LINE_WITH_SHARED_INPUTS
+//#define __BROKEN_LINE_WITH_SHARED_INPUTS
 #define __BROKEN_LINE_WITH_SHARED_OUTPUTS
 #define __BROKEN_LINE_WITH_SHARED_LINGEBRA
 
