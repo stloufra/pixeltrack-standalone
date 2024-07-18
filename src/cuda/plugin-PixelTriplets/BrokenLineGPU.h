@@ -91,11 +91,10 @@ namespace BrokenLine {
     for (auto i = idx; i < N * N; i += tile.num_threads()) {
       row = i / N;
       col = i % N;
-      tmp = 0;
-
-      #pragma unroll
+      tmp = 0.f;
+#pragma unroll
       for (unsigned int m = 0; m < N; m++) {
-      #pragma unroll
+#pragma unroll
         for (unsigned int k = 0; k < N; k++) {
           tmp += A(row, k) * B(k, m) * A(col, m);
         }
@@ -115,12 +114,12 @@ namespace BrokenLine {
     unsigned int row;
     unsigned int col;
 
-    for (auto i = idx; i < N*N; i += tile.num_threads()) {
+    for (auto i = idx; i < N * N; i += tile.num_threads()) {
       row = i / N;
       col = i % N;
-      tmp =0;
+      tmp = 0;
 
-      #pragma unroll
+#pragma unroll
       for (unsigned int k = 0; k < N; k++) {
         tmp += A(row, k) * B(k, col);
       }
@@ -138,12 +137,12 @@ namespace BrokenLine {
     unsigned int row;
     unsigned int col;
 
-    for (auto i = idx; i < N*N; i += tile.num_threads()) {
+    for (auto i = idx; i < N * N; i += tile.num_threads()) {
       row = i / N;
       col = i % N;
       tmp = 0;
 
-      #pragma unroll
+#pragma unroll
       for (unsigned int k = 0; k < N; k++) {
         tmp += A(row, k) * B(col, k);
       }
@@ -156,17 +155,16 @@ namespace BrokenLine {
   template <typename MATRIX, typename TILE>
   __device__ inline void jacobiMult(MATRIX const& A, MATRIX const& B, MATRIX& C, MATRIX& holder, TILE& tile) {
 #ifdef __MULTIPLY_MULTIPLE_STEPS_PARALLEL
-    ABeqC<MATRIX,TILE, MATRIX::ColsAtCompileTime>(A, B, holder, tile);
-    ABteqC<MATRIX,TILE, MATRIX::ColsAtCompileTime>(holder, B, C, tile);
+    ABeqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(A, B, holder, tile);
+    ABteqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(holder, A, C, tile);
 #endif
 #ifdef __MULTIPLY_ONE_STEP_PARALLEL
-    ABAteqC<MATRIX,TILE, MATRIX::ColsAtCompileTime>(A, B, C, holder, tile);
+    ABAteqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(A, B, C, holder, tile);
 #endif
 #ifdef __MULTIPLY_SERIAL
     C = A * B * A.transpose();
 #endif
   }
-
 
   /*!
     \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a translation of the coordinate system, such that the old origin has coordinates (x0,y0) in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
@@ -208,31 +206,6 @@ namespace BrokenLine {
 
     jacobiMult(jacobian, circle.cov, circle.cov, holder, tile);
   }
-
-  /*__device__ inline void TranslateKarimaki(karimaki_circle_fit& circle, double x0, double y0, Rfit::Matrix3d& jacobian) {
-    double A, U, BB, C, DO, DP, uu, xi, v, mu, lambda, zeta;
-    DP = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
-    DO = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
-    uu = 1 + circle.par(2) * circle.par(1);
-    C = -circle.par(2) * y0 + uu * cos(circle.par(0));
-    BB = circle.par(2) * x0 + uu * sin(circle.par(0));
-    A = 2. * DO + circle.par(2) * (Rfit::sqr(DO) + Rfit::sqr(DP));
-    U = sqrt(1. + circle.par(2) * A);
-    xi = 1. / (Rfit::sqr(BB) + Rfit::sqr(C));
-    v = 1. + circle.par(2) * DO;
-    lambda = (0.5 * A) / (U * Rfit::sqr(1. + U));
-    mu = 1. / (U * (1. + U)) + circle.par(2) * lambda;
-    zeta = Rfit::sqr(DO) + Rfit::sqr(DP);
-
-    jacobian << xi * uu * v, -xi * Rfit::sqr(circle.par(2)) * DP, xi * DP, 2. * mu * uu * DP, 2. * mu * v,
-        mu * zeta - lambda * A, 0, 0, 1.;
-
-    circle.par(0) = atan2(BB, C);
-    circle.par(1) = A / (1 + U);
-    // circle.par(2)=circle.par(2);
-
-    circle.cov = jacobian * circle.cov * jacobian.transpose();  //TODO: cuBLASdX
-  }*/
 
   /*!
     \brief Computes the data needed for the Broken Line fit procedure that are mainly common for the circle and the line fit.
@@ -317,11 +290,15 @@ namespace BrokenLine {
     constexpr u_int n = N;
     u_int i = tile.thread_rank();
 
-    if (i == 0) {
+#ifdef __IFS_FOR_0_THREAD
+    if (tile.thread_rank() == 0) {
+#endif
       C_U = Rfit::MatrixNd<N>::Zero();
+#ifdef __IFS_FOR_0_THREAD
     }
+     tile.sync();
+#endif
 
-    tile.sync();
 
     if (i < N) {
       C_U(i, i) = w(i);
@@ -491,12 +468,16 @@ namespace BrokenLine {
 
     MatrixC_u(w, s, VarBeta, C_UBlock, tile);
 
+#ifdef __IFS_FOR_0_THREAD
     if (tile.thread_rank() == 0) {
+#endif
       C_U.block(0, 0, n, n) = C_UBlock;
 
       C_U(n, n) = 0;
+#ifdef __IFS_FOR_0_THREAD
     }
-    //add the border to the C_u matrix
+#endif
+        //add the border to the C_u matrix
     if (i < N) {
       C_U(i, n) = 0;
       if (i > 0 && i < n - 1) {
@@ -537,8 +518,9 @@ namespace BrokenLine {
     }
     Rfit::Vector2d d = hits.block(0, 0, 2, 1) + (-Z(0) + u(0)) * radii.block(0, 0, 2, 1);
     Rfit::Vector2d e = hits.block(0, 1, 2, 1) + (-Z(1) + u(1)) * radii.block(0, 1, 2, 1);
-
+#ifdef __IFS_FOR_0_THREAD
     if (tile.thread_rank() == 0) {
+#endif
       circle_results.par << atan2((e - d)(1), (e - d)(0)),
           -circle_results.q * (fast_fit(2) - sqrt(Rfit::sqr(fast_fit(2)) - 0.25 * (e - d).squaredNorm())),
           circle_results.q * (1. / fast_fit(2) + u(n));
@@ -562,7 +544,9 @@ namespace BrokenLine {
       // circle_results.cov = jacobian * circle_results.cov * jacobian.transpose();  //TODO: cuBLASDx
 
       //ABAteqC33(jacobian, circle_results.cov, circle_results.cov, holder, tile);
+#ifdef __IFS_FOR_0_THREAD
     }
+#endif
     tile.sync();
 
     jacobiMult(jacobian, circle_results.cov, circle_results.cov, holder, tile);
@@ -578,7 +562,6 @@ namespace BrokenLine {
 
     TranslateKarimaki(circle_results, d(0), d(1), jacobian, holder, tile);  //TODO: cuBLASDx
 
-
     // compute chi2
 
     float tmp2 = 0;
@@ -591,17 +574,6 @@ namespace BrokenLine {
                 VarBeta(i);
     }
     cg::reduce_store_async(tile, &circle_results.chi2, tmp2, cg::plus<float>());
-
-    /*// compute chi2
-    circle_results.chi2 = 0;
-    for (i = 0; i < n; i++) {
-      circle_results.chi2 += w(i) * Rfit::sqr(Z(i) - u(i));
-      if (i > 0 && i < n - 1)
-        circle_results.chi2 += Rfit::sqr(u(i - 1) / (s(i) - s(i - 1)) -
-                                         u(i) * (s(i + 1) - s(i - 1)) / ((s(i + 1) - s(i)) * (s(i) - s(i - 1))) +
-                                         u(i + 1) / (s(i + 1) - s(i)) + (s(i + 1) - s(i - 1)) * u(n) / 2) /
-                               VarBeta(i);
-    }*/
 
     // assert(circle_results.chi2>=0);
   }
@@ -632,8 +604,8 @@ namespace BrokenLine {
                                      Rfit::VectorNd<N>& w,
                                      Rfit::VectorNd<N>& r_u,
                                      Rfit::MatrixNd<N>& C_U,
-                                     Rfit::Matrix2d jacobian,
-                                     Rfit::Matrix2d holder,
+                                     Rfit::Matrix2d& jacobian,
+                                     Rfit::Matrix2d& holder,
                                      cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     auto i = tile.thread_rank();
@@ -688,8 +660,9 @@ namespace BrokenLine {
 #endif
 
     Rfit::VectorNd<N> u = I * r_u;  // obtain the fitted parameters by solving the linear system
-
+#ifdef __IFS_FOR_0_THREAD
     if (tile.thread_rank() == 0) {
+#endif
       // line parameters in the system in which the first hit is the origin and with axis along SZ
       line_results.par << (u(1) - u(0)) / (S(1) - S(0)), u(0);
       auto idiff = 1. / (S(1) - S(0));
@@ -704,26 +677,35 @@ namespace BrokenLine {
       jacobian(0, 1) = 0;
       jacobian(1, 0) = -S(0);
       jacobian(1, 1) = 1.;
-      line_results.par(1) += -line_results.par(0) * S(0);
+#ifndef __IFS_FOR_0_THREAD
+      if (tile.thread_rank() == 0) {
+#endif
+        line_results.par(1) += -line_results.par(0) * S(0);
     }
     tile.sync();
-    line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
-    //jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
 
-     if (tile.thread_rank() == 0) {
+    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
+
+    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+#ifdef __IFS_FOR_0_THREAD
+    if (tile.thread_rank() == 0) {
+#endif
       // rotate to the original sz system
       auto tmp1 = R(0, 0) - line_results.par(0) * R(0, 1);
       jacobian(1, 1) = 1. / tmp1;
       jacobian(0, 0) = jacobian(1, 1) * jacobian(1, 1);
       jacobian(0, 1) = 0;
       jacobian(1, 0) = line_results.par(1) * R(0, 1) * jacobian(0, 0);
-      line_results.par(1) = line_results.par(1) * jacobian(1, 1);
+#ifndef __IFS_FOR_0_THREAD
+      if (tile.thread_rank() == 0) {
+#endif
+        line_results.par(1) = line_results.par(1) * jacobian(1, 1);
       line_results.par(0) = (R(0, 1) + line_results.par(0) * R(0, 0)) * jacobian(1, 1);
     }
     tile.sync();
 
-    //jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
-    line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
+    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
 
     // compute chi2
     line_results.chi2 = 0;

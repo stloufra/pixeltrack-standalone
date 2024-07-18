@@ -29,9 +29,12 @@ extern std::chrono::duration<double> globalTimePenta(0) ;
 
 
 //Multiplication (only one)
-//#define __MULTIPLY_MULTIPLE_STEPS_PARALLEL
 #define __MULTIPLY_ONE_STEP_PARALLEL
+//#define __MULTIPLY_MULTIPLE_STEPS_PARALLEL
 //#define __MULTIPLY_SERIAL
+
+//IFS
+#define __IFS_FOR_0_THREAD
 
 
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
