@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Execution Methods &mdash; cuBLASDx 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/cublasdx_override.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Examples" href="../examples.html" />
+    <link rel="prev" title="Traits" href="traits.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" > 
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cuBLASDx
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #76b900;
+    }
+
+    .wy-side-nav-search a:link, .wy-nav-top a:link {
+      color: #fff;
+    }
+    .wy-side-nav-search a:visited, .wy-nav-top a:visited {
+      color: #fff;
+    }
+    .wy-side-nav-search a:hover, .wy-nav-top a:hover {
+      color: #fff;
+    }
+
+    .wy-menu-vertical a:link, .wy-menu-vertical a:visited {
+      color: #d9d9d9
+    }
+
+    .wy-menu-vertical a:active {
+      background-color: #76b900
+    }
+
+    .wy-side-nav-search>div.version {
+      color: rgba(0, 0, 0, 0.3)
+    }
+
+    /* override table width restrictions */
+    .wy-table-responsive table td, .wy-table-responsive table th {
+        white-space: normal;
+    }
+
+    .wy-table-responsive {
+        margin-bottom: 24px;
+        max-width: 100%;
+        overflow: visible;
+    }
+  </style>
+  
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Documentation home</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../requirements_func.html">Requirements and Functionality</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../requirements_func.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../requirements_func.html#supported-compilers">Supported Compilers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../requirements_func.html#supported-functionality">Supported Functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Quick Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#cublasdx-in-your-project">cuBLASDx In Your Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#cublasdx-in-your-cmake-project">cuBLASDx In Your CMake Project</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#using-custom-cutlass">Using Custom CUTLASS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation.html#defined-variables">Defined Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction1.html">General Matrix Multiply Using cuBLASDx</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../introduction1.html#defining-gemm-operation">Defining GEMM Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../introduction1.html#executing-gemm">Executing GEMM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../introduction1.html#launching-gemm-kernel">Launching GEMM Kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../introduction1.html#compilation">Compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../performance.html">Achieving High Performance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../performance.html#general-advice">General Advice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance.html#memory-management">Memory Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance.html#advanced">Advanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../performance.html#further-reading">Further Reading</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../performance.html#references">References</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="operators.html">Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="operators.html#description-operators">Description Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#size-operator">Size Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#type-operator">Type Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#precision-operator">Precision Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#transposemode-operator">TransposeMode Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#leadingdimension-operator">LeadingDimension Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#function-operator">Function Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#sm-operator">SM Operator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="operators.html#execution-operators">Execution Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#block-operator">Block Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="operators.html#block-configuration-operators">Block Configuration Operators</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="traits.html">Traits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="traits.html#description-traits">Description Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#size-trait">Size Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#type-trait">Type Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#precision-trait">Precision Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#function-trait">Function Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#transpose-mode-trait">Transpose Mode Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#sm-trait">SM Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#is-blas-trait">is_blas Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#is-blas-execution-trait">is_blas_execution Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#is-complete-blas-trait">is_complete_blas Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#is-complete-blas-execution-trait">is_complete_blas_execution Trait</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="traits.html#execution-traits">Execution Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#block-traits">Block Traits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="traits.html#other-traits">Other Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#is-supported">is_supported</a></li>
+<li class="toctree-l4"><a class="reference internal" href="traits.html#suggested-leading-dimension-of">suggested_leading_dimension_of</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Execution Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#block-execute-method">Block Execute Method</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#value-format">Value Format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#input-output-data-format">Input/Output Data Format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shared-memory-usage">Shared Memory Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#introduction-examples">Introduction Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#simple-gemm-examples">Simple GEMM Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#nvrtc-examples">NVRTC Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#gemm-performance">GEMM Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#advanced-examples">Advanced Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release_notes.html#id1">0.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../release_notes.html#new-features">New Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release_notes.html#known-issues">Known Issues</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">Software License Agreement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../license.html#third-party-license-agreements">Third Party License Agreements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../license.html#cutlass">CUTLASS</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cuBLASDx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API reference</a></li>
+      <li class="breadcrumb-item active">Execution Methods</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="execution-methods">
+<span id="execution-methods-label"></span><h1>Execution Methods<a class="headerlink" href="#execution-methods" title="Permalink to this heading">¶</a></h1>
+<p>Execution methods are used to run the BLAS function as defined by user with cuBLASDx operators.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Right now, cuBLASDx supports only execution on CUDA thread block level (block execution).</p>
+</div>
+<p>A code example:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Type</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">N</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Function</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Block</span><span class="p">());</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">data_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
+
+<span class="n">__shared__</span><span class="w"> </span><span class="n">data_type</span><span class="w"> </span><span class="n">sa</span><span class="p">[</span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">];</span>
+<span class="n">__shared__</span><span class="w"> </span><span class="n">data_type</span><span class="w"> </span><span class="n">sb</span><span class="p">[</span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">];</span>
+<span class="n">__shared__</span><span class="w"> </span><span class="n">data_type</span><span class="w"> </span><span class="n">sc</span><span class="p">[</span><span class="n">GEMM</span><span class="o">::</span><span class="n">c_size</span><span class="p">];</span>
+
+<span class="c1">// Load data from global to shared memory</span>
+<span class="c1">// sa &lt;-- a</span>
+<span class="c1">// sb &lt;-- b</span>
+<span class="c1">// sc &lt;-- c</span>
+
+<span class="c1">// Execute</span>
+<span class="n">GEMM</span><span class="p">().</span><span class="n">execute</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">sc</span><span class="p">);</span>
+
+<span class="c1">// Store results back to global memory</span>
+</pre></div>
+</div>
+<div class="section" id="block-execute-method">
+<span id="block-execute-method-label"></span><h2>Block Execute Method<a class="headerlink" href="#block-execute-method" title="Permalink to this heading">¶</a></h2>
+<p>The block execution methods are available if the descriptor has been constructed using the <a class="reference internal" href="operators.html#block-operator-label"><span class="std std-ref">Block Operator</span></a>
+and <a class="reference internal" href="traits.html#isblascompleteexecution-trait-label"><span class="std std-ref">is_complete_blas_execution Trait</span></a> is <code class="code highlight cpp docutils literal highlight-cpp"><span class="nb">true</span></code>.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// #1</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">BLAS</span><span class="p">().</span><span class="n">execute</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">   </span><span class="n">alpha</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">        </span><span class="n">matrix_a</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">        </span><span class="n">matrix_b</span><span class="p">,</span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">   </span><span class="n">beta</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">        </span><span class="n">matrix_c</span><span class="p">)</span>
+
+<span class="c1">// #2: Allows providing runtime/dynamic leading dimensions for matrices A, B, and C</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">BLAS</span><span class="p">().</span><span class="n">execute</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">            </span><span class="n">alpha</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">                 </span><span class="n">matrix_a</span><span class="p">,</span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">lda</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">                 </span><span class="n">matrix_b</span><span class="p">,</span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ldb</span><span class="p">,</span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="w">            </span><span class="n">beta</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">T</span><span class="o">*</span><span class="w">                 </span><span class="n">matrix_c</span><span class="p">,</span>
+<span class="w">                                </span><span class="k">const</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ldc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Method <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">execute</span><span class="p">(...)</span></code> runs the calculations defined by the <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BLAS</span></code> descriptor.</p>
+<p>By default <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">T</span></code> is <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BLAS</span><span class="o">::</span><span class="n">value_type</span></code>, but it can be any type (such as <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">float2</span></code>,
+<code class="code highlight cpp docutils literal highlight-cpp"><span class="n">cuda</span><span class="o">::</span><span class="n">std</span><span class="o">::</span><span class="n">complex</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span></code>), as long as its alignment and size are the same as those of <a class="reference internal" href="traits.html#valuetype-block-trait-label"><span class="std std-ref">BLAS::value_type</span></a>.
+Pointers <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_a</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_b</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_c</span></code> must point to a shared memory regions aligned to <code class="code highlight cpp docutils literal highlight-cpp"><span class="k">alignof</span><span class="p">(</span><span class="n">BLAS</span><span class="o">::</span><span class="n">value_type</span><span class="p">)</span></code>.</p>
+<p>Method #2 allows user to provide custom dynamic leading dimensions via <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">lda</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">ldb</span></code>, and <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">ldc</span></code> arguments.
+In this case, leading dimension values set via <a class="reference internal" href="operators.html#leadingdimension-operator-label"><span class="std std-ref">LeadingDimension</span></a> operator are ignored.
+Values <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">lda</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">ldb</span></code>, and <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">ldc</span></code> have to follow the same rules as presented in <a class="reference internal" href="operators.html#leadingdimension-operator-label"><span class="std std-ref">LeadingDimension</span></a> operator.</p>
+<p>After methods #1 and #2 user has to perform CUDA block synchronization before accessing <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_a</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_b</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_c</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is not guaranteed that executions of exactly the same BLAS function with exactly the same inputs but
+with different</p>
+<ul class="simple">
+<li><p>leading dimensions (<a class="reference internal" href="operators.html#leadingdimension-operator-label"><span class="std std-ref">LeadingDimension</span></a>),</p></li>
+<li><p>CUDA architecture (<a class="reference internal" href="operators.html#sm-operator-label"><span class="std std-ref">SM</span></a>), or</p></li>
+<li><p>number of threads (<a class="reference internal" href="operators.html#blockdim-operator-label"><span class="std std-ref">BlockDim</span></a>)</p></li>
+</ul>
+<p>will produce bit-identical results.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is not guaranteed that executions of exactly the same BLAS function with exactly the same inputs on GPUs of different
+CUDA architectures will produce bit-identical results.</p>
+</div>
+<div class="section" id="value-format">
+<span id="execution-methods-value-format-label"></span><h3>Value Format<a class="headerlink" href="#value-format" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">BLAS</span><span class="o">::</span><span class="n">value_type</span>
+</pre></div>
+</div>
+<p>For complex numbers of every precision, the first value in a complex number is the real part and the second is the imaginary part.
+For real number, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BLAS</span><span class="o">::</span><span class="n">value_type</span></code> is same as <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">P</span></code> in <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">Precision</span><span class="o">&lt;</span><span class="n">P</span><span class="o">&gt;</span></code> used to describe <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BLAS</span></code> (or the default precision).</p>
+</div>
+<div class="section" id="input-output-data-format">
+<span id="execution-methods-input-output-format-label"></span><h3>Input/Output Data Format<a class="headerlink" href="#input-output-data-format" title="Permalink to this heading">¶</a></h3>
+<p>This section describes the input and output data format required for correct calculations.</p>
+<div class="section" id="gemm-function-mm">
+<h4>GEMM (<code class="code highlight cpp docutils literal highlight-cpp"><span class="n">function</span><span class="o">::</span><span class="n">MM</span></code>)<a class="headerlink" href="#gemm-function-mm" title="Permalink to this heading">¶</a></h4>
+<p>The general matrix multiplication assumes that values in matrices <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_a</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_b</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_c</span></code> are in column-major format.
+Results are stored in <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">matrix_c</span></code> in column-major format too.</p>
+</div>
+</div>
+<div class="section" id="shared-memory-usage">
+<span id="execution-methods-shared-memory-label"></span><h3>Shared Memory Usage<a class="headerlink" href="#shared-memory-usage" title="Permalink to this heading">¶</a></h3>
+<p>It’s important to note that large BLAS operations (as defined by <a class="reference internal" href="operators.html#size-operator-label"><span class="std std-ref">Size</span></a> operator) may require more
+than 48 KB of shared memory per CUDA block for the matrices. Therefore, as described in
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html">CUDA Programming Guide</a>
+(<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#features-and-technical-specifications__technical-specifications-per-compute-capability">#1</a>,
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory-7-x">#2</a>,
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#shared-memory-8-x">#3</a>), kernels with such BLAS operations must use
+the dynamic shared memory rather than statically sized shared memory arrays. Additionally, these kernels require
+an explicit opt-in using <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">cudaFuncSetAttribute</span><span class="p">()</span></code> to set the <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">cudaFuncAttributeMaxDynamicSharedMemorySize</span></code>. See example code
+below.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"> </span><span class="mi">64</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Type</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">N</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Function</span><span class="o">&lt;</span><span class="n">cublasdx</span><span class="o">::</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">900</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">Block</span><span class="p">());</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">example</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">(...)</span>
+
+<span class="w">  </span><span class="c1">// Increases the max dynamic shared memory size to match GEMM requirements</span>
+<span class="w">  </span><span class="n">cudaFuncSetAttribute</span><span class="p">(</span><span class="n">gemm_kernel</span><span class="p">,</span><span class="w"> </span><span class="n">cudaFuncAttributeMaxDynamicSharedMemorySize</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">shared_memory_size</span><span class="p">)</span>
+<span class="w">  </span><span class="c1">// Invokes kernel with GEMM::block_dim threads in CUDA block</span>
+<span class="w">  </span><span class="n">gemm_kernel</span><span class="o">&lt;</span><span class="n">GEMM</span><span class="o">&gt;&lt;&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">block_dim</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">shared_memory_size</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
+
+<span class="w">  </span><span class="p">(...)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="traits.html" class="btn btn-neutral float-left" title="Traits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+  a:link, a:visited {
+    color: #76b900;
+  }
+
+  a:hover {
+    color: #8c0;
+  }
+
+  .rst-content dl:not(.docutils) dt {
+    background: rgba(118, 185, 0, 0.1);
+    color: rgba(59,93,0,1);
+    border-top: solid 3px rgba(59,93,0,1);
+  }
+  </style>
+  
+
+</body>
+</html>

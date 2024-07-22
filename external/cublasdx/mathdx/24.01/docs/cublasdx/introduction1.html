@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>General Matrix Multiply Using cuBLASDx &mdash; cuBLASDx 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/cublasdx_override.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Achieving High Performance" href="performance.html" />
+    <link rel="prev" title="Quick Installation Guide" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" > 
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            cuBLASDx
+          </a>
+              <div class="version">
+                0.1.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+  <style>
+    /* Sidebar header (and topbar for mobile) */
+    .wy-side-nav-search, .wy-nav-top {
+      background: #76b900;
+    }
+
+    .wy-side-nav-search a:link, .wy-nav-top a:link {
+      color: #fff;
+    }
+    .wy-side-nav-search a:visited, .wy-nav-top a:visited {
+      color: #fff;
+    }
+    .wy-side-nav-search a:hover, .wy-nav-top a:hover {
+      color: #fff;
+    }
+
+    .wy-menu-vertical a:link, .wy-menu-vertical a:visited {
+      color: #d9d9d9
+    }
+
+    .wy-menu-vertical a:active {
+      background-color: #76b900
+    }
+
+    .wy-side-nav-search>div.version {
+      color: rgba(0, 0, 0, 0.3)
+    }
+
+    /* override table width restrictions */
+    .wy-table-responsive table td, .wy-table-responsive table th {
+        white-space: normal;
+    }
+
+    .wy-table-responsive {
+        margin-bottom: 24px;
+        max-width: 100%;
+        overflow: visible;
+    }
+  </style>
+  
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Documentation home</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="requirements_func.html">Requirements and Functionality</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="requirements_func.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="requirements_func.html#supported-compilers">Supported Compilers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="requirements_func.html#supported-functionality">Supported Functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Quick Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#cublasdx-in-your-project">cuBLASDx In Your Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#cublasdx-in-your-cmake-project">cuBLASDx In Your CMake Project</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#using-custom-cutlass">Using Custom CUTLASS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#defined-variables">Defined Variables</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">General Matrix Multiply Using cuBLASDx</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#defining-gemm-operation">Defining GEMM Operation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#executing-gemm">Executing GEMM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#launching-gemm-kernel">Launching GEMM Kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compilation">Compilation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Achieving High Performance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="performance.html#general-advice">General Advice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="performance.html#memory-management">Memory Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="performance.html#advanced">Advanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="performance.html#further-reading">Further Reading</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="performance.html#references">References</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/operators.html">Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/operators.html#description-operators">Description Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#size-operator">Size Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#type-operator">Type Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#precision-operator">Precision Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#transposemode-operator">TransposeMode Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#leadingdimension-operator">LeadingDimension Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#function-operator">Function Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#sm-operator">SM Operator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/operators.html#execution-operators">Execution Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#block-operator">Block Operator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/operators.html#block-configuration-operators">Block Configuration Operators</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/traits.html">Traits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/traits.html#description-traits">Description Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#size-trait">Size Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#type-trait">Type Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#precision-trait">Precision Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#function-trait">Function Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#transpose-mode-trait">Transpose Mode Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#sm-trait">SM Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#is-blas-trait">is_blas Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#is-blas-execution-trait">is_blas_execution Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#is-complete-blas-trait">is_complete_blas Trait</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#is-complete-blas-execution-trait">is_complete_blas_execution Trait</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/traits.html#execution-traits">Execution Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#block-traits">Block Traits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/traits.html#other-traits">Other Traits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#is-supported">is_supported</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/traits.html#suggested-leading-dimension-of">suggested_leading_dimension_of</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/methods.html">Execution Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/methods.html#block-execute-method">Block Execute Method</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/methods.html#value-format">Value Format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/methods.html#input-output-data-format">Input/Output Data Format</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/methods.html#shared-memory-usage">Shared Memory Usage</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#introduction-examples">Introduction Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#simple-gemm-examples">Simple GEMM Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#nvrtc-examples">NVRTC Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#gemm-performance">GEMM Performance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#advanced-examples">Advanced Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_notes.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release_notes.html#id1">0.1.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="release_notes.html#new-features">New Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="release_notes.html#known-issues">Known Issues</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">Software License Agreement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="license.html#third-party-license-agreements">Third Party License Agreements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="license.html#cutlass">CUTLASS</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">cuBLASDx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">General Matrix Multiply Using cuBLASDx</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="general-matrix-multiply-using-cublasdx">
+<span id="intro1-label"></span><h1>General Matrix Multiply Using cuBLASDx<a class="headerlink" href="#general-matrix-multiply-using-cublasdx" title="Permalink to this heading">¶</a></h1>
+<p>In this introduction, we will perform a general matrix multiplication <span class="math notranslate nohighlight">\(C = {\alpha} * op(A) * op(B) + {\beta} * C\)</span> using the cuBLASDx
+library. This section is based on the <a class="reference internal" href="examples.html#examples-introduction-examples-label"><span class="std std-ref">introduction_example.cu</span></a> example shipped with cuBLASDx.
+See <a class="reference internal" href="examples.html#examples-label"><span class="std std-ref">Examples</span></a> section to check other cuBLASDx samples.</p>
+<div class="section" id="defining-gemm-operation">
+<h2>Defining GEMM Operation<a class="headerlink" href="#defining-gemm-operation" title="Permalink to this heading">¶</a></h2>
+<p>The first step is defining the GEMM we want to perform.
+It is done by adding together cuBLASDx operators to create a GEMM description.
+The correctness of this type is evaluated at compile time every time new operator is added.
+A well-defined cuBLASDx GEMM routine description must include two parts:</p>
+<ol class="arabic simple">
+<li><p>Selected linear algebra routine. In this case that is matrix multiplication: <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">cublasdx</span><span class="o">::</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span></code>.</p></li>
+<li><p>Valid and sufficient description of the inputs and outputs: the dimensions of matrices (<code class="code highlight cpp docutils literal highlight-cpp"><span class="n">M</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">N</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">K</span></code>), the precision (half, float, double etc.), the data type (real or complex), and transpose mode of each matrix.</p></li>
+</ol>
+<p>To get a descriptor for <span class="math notranslate nohighlight">\(C = {\alpha} * A * B + {\beta} * C\)</span> with <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">M</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span></code>, where <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">A</span></code> and <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">B</span></code> are non-transposed matrices, we just need
+to write the following lines:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="w"> </span><span class="cm">/* M */</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="cm">/* N */</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="cm">/* K */</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="w"> </span><span class="cm">/* A */</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="cm">/* B */</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">());</span>
+</pre></div>
+</div>
+<p>In order to encode the operation properties, cuBLASDx provides operators <a class="reference internal" href="api/operators.html#size-operator-label"><span class="std std-ref">Size</span></a>,
+<a class="reference internal" href="api/operators.html#precision-operator-label"><span class="std std-ref">Precision</span></a>, <a class="reference internal" href="api/operators.html#type-operator-label"><span class="std std-ref">Type</span></a>, <a class="reference internal" href="api/operators.html#transposemode-operator-label"><span class="std std-ref">TransposeMode</span></a>,
+and <a class="reference internal" href="api/operators.html#function-operator-label"><span class="std std-ref">Function</span></a>,
+which can be combined by using the standard addition operator (<code class="code highlight cpp docutils literal highlight-cpp"><span class="o">+</span></code>).</p>
+<p>Optionally, user can set leading dimensions for each matrix using <a class="reference internal" href="api/operators.html#leadingdimension-operator-label"><span class="std std-ref">LeadingDimension</span></a> operator.
+It is also possible to set leading dimensions dynamically during the execution, however, it is worth noting it may have an effect on the performance.</p>
+<p>To obtain a fully usable operation that executes GEMM on CUDA block level, we need to provide at least two additional pieces of
+information:</p>
+<ul class="simple">
+<li><p>The first one is the <a class="reference internal" href="api/operators.html#sm-operator-label"><span class="std std-ref">SM Operator</span></a> which indicates the targeted CUDA architecture on which we want to run the GEMM. Each GPU architecture is different, therefore each can use a different implementation and may require different CUDA block size for the best performance. In the <a class="reference internal" href="examples.html#examples-introduction-examples-label"><span class="std std-ref">introduction_example.cu</span></a> example this is passed as template parameter, but in here we can assume we’re targeting Volta GPUs (<code class="code highlight cpp docutils literal highlight-cpp"><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span></code>).</p></li>
+<li><p>Finally, we use the <a class="reference internal" href="api/operators.html#block-operator-label"><span class="std std-ref">Block Operator</span></a> to show that the BLAS routine will be performed by multiple threads in a single CUDA block. At this point, cuBLASDx performs additional verifications to make sure provided description is valid and that it is possible to execute it on the requested architecture.</p></li>
+</ul>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">());</span>
+</pre></div>
+</div>
+<p>User can also specify the layout and the number of threads that will be performing the GEMM.
+This is done with the <a class="reference internal" href="api/operators.html#blockdim-operator-label"><span class="std std-ref">BlockDim Operator</span></a>.
+Adding <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BlockDim</span><span class="o">&lt;</span><span class="n">X</span><span class="p">,</span><span class="w"> </span><span class="n">Y</span><span class="p">,</span><span class="w"> </span><span class="n">Z</span><span class="o">&gt;</span></code> means that the GEMM will only work correctly if a kernel is launched with block dimensions <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">dim3</span><span class="p">(</span><span class="n">X1</span><span class="p">,</span><span class="w"> </span><span class="n">Y1</span><span class="p">,</span><span class="w"> </span><span class="n">Z1</span><span class="p">)</span></code> where
+<code class="code highlight cpp docutils literal highlight-cpp"><span class="n">X1</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">X</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">Y1</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">Y</span></code>, and <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">Z1</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">Z</span></code>.
+Detailed requirements can be found in the section dedicated to <a class="reference internal" href="api/operators.html#blockdim-operator-label"><span class="std std-ref">BlockDim</span></a> operator.
+If <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BlockDim</span></code> operator is not used, cuBLASDx will select preferred block size that can be obtained with <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">GEMM</span><span class="o">::</span><span class="n">block_dim</span></code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>If there is no need to set custom block dimensions, it is recommended not to use <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">BlockDim</span></code> operator and rely on <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">GEMM</span><span class="o">::</span><span class="n">block_dim</span></code>.
+For more details, see <a class="reference internal" href="api/methods.html#block-execute-method-label"><span class="std std-ref">Block Execute Method</span></a> section, <a class="reference internal" href="api/operators.html#blockdim-operator-label"><span class="std std-ref">BlockDim Operator</span></a>, and
+<a class="reference internal" href="api/traits.html#suggestedblockdim-block-trait-label"><span class="std std-ref">Suggested Block Dim Trait</span></a>.</p>
+</div>
+<p>For this sample, let’s assume we want to use a 1D CUDA thread block with 256 threads.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">BlockDim</span><span class="o">&lt;</span><span class="mi">256</span><span class="o">&gt;</span><span class="p">());</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="executing-gemm">
+<h2>Executing GEMM<a class="headerlink" href="#executing-gemm" title="Permalink to this heading">¶</a></h2>
+<p>Class <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">GEMM</span></code> which describes the matrix multiplication can be instantiated into object (or objects).
+Forming the object has no computational cost, and should be seen as a handle.
+The function descriptor object provides a compute method, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">execute</span><span class="p">(...)</span></code> that performs the requested function.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">BlockDim</span><span class="o">&lt;</span><span class="mi">256</span><span class="o">&gt;</span><span class="p">());</span>
+
+<span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">gemm_kernel</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="c1">// Execute GEMM</span>
+<span class="w">      </span><span class="n">GEMM</span><span class="p">().</span><span class="n">execute</span><span class="p">(</span><span class="cm">/* What are the arguments? */</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>It is assumed that all the matrices reside in the shared memory.
+It is up to the users to load the matrices from global to shared memory before calling the execution method.
+In the same way, users are responsible for saving the results.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">()</span>
+<span class="w">              </span><span class="o">+</span><span class="w"> </span><span class="n">BlockDim</span><span class="o">&lt;</span><span class="mi">256</span><span class="o">&gt;</span><span class="p">());</span>
+<span class="c1">// Type value_type is defined based on the GEMM description. Precision operator defines its numerical</span>
+<span class="c1">// precision, and via Type operator user specifies if it is complex or real.</span>
+<span class="c1">//</span>
+<span class="c1">// In this case, value_type is double since set precision is double, and type is real.</span>
+<span class="k">using</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
+
+<span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">gemm_kernel</span><span class="p">(</span><span class="n">value_type</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">extern</span><span class="w"> </span><span class="n">__shared__</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">smem</span><span class="p">[];</span>
+
+<span class="w">      </span><span class="c1">// gemmm::&lt;a/b/c&gt;_size provides the number of elements &lt;a/b/c&gt; matrix including padding defined by leading dimension.</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">;</span>
+
+<span class="w">      </span><span class="c1">// Load data from global to shared memory</span>
+<span class="w">      </span><span class="c1">// sa &lt;-- a</span>
+<span class="w">      </span><span class="c1">// sb &lt;-- b</span>
+<span class="w">      </span><span class="c1">// sc &lt;-- c</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Execute GEMM</span>
+<span class="w">      </span><span class="n">GEMM</span><span class="p">().</span><span class="n">execute</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">sc</span><span class="p">);</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Store data to global memory</span>
+<span class="w">      </span><span class="c1">// c &lt;-- sc</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="launching-gemm-kernel">
+<h2>Launching GEMM Kernel<a class="headerlink" href="#launching-gemm-kernel" title="Permalink to this heading">¶</a></h2>
+<p>To launch a kernel executing the defined GEMM we need to know the required block dimensions and the amount of shared memory needed for all
+three matrices - <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">A</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">B</span></code>, <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">C</span></code>. Elements in the matrices should be in a column-major format (accounting for leading dimensions).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">&gt;</span>
+<span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">gemm_kernel</span><span class="p">(</span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">using</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
+<span class="w">      </span><span class="k">extern</span><span class="w"> </span><span class="n">__shared__</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="n">smem</span><span class="p">[];</span>
+
+<span class="w">      </span><span class="c1">// GEMM::&lt;a/b/c&gt;_size provides the number of elements &lt;a/b/c&gt; matrix including padding defined by leading dimension.</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">;</span>
+
+<span class="w">      </span><span class="c1">// Load data from global to shared memory</span>
+<span class="w">      </span><span class="c1">// sa &lt;-- a</span>
+<span class="w">      </span><span class="c1">// sb &lt;-- b</span>
+<span class="w">      </span><span class="c1">// sc &lt;-- c</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Execute GEMM</span>
+<span class="w">      </span><span class="n">GEMM</span><span class="p">().</span><span class="n">execute</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">sc</span><span class="p">);</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Store data to global memory</span>
+<span class="p">}</span>
+
+<span class="c1">// CUDA_CHECK_AND_EXIT - marco checks if function returns cudaSuccess; if not it prints</span>
+<span class="c1">// the error code and exits the program</span>
+<span class="kt">void</span><span class="w"> </span><span class="n">introduction_example</span><span class="p">(</span><span class="n">value_type</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">BlockDim</span><span class="o">&lt;</span><span class="mi">256</span><span class="o">&gt;</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// Invokes kernel with GEMM::block_dim threads in CUDA block</span>
+<span class="w">  </span><span class="n">gemm_kernel</span><span class="o">&lt;</span><span class="n">GEMM</span><span class="o">&gt;&lt;&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">block_dim</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">shared_memory_size</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
+<span class="w">  </span><span class="n">CUDA_CHECK_AND_EXIT</span><span class="p">(</span><span class="n">cudaPeekAtLastError</span><span class="p">());</span>
+<span class="w">  </span><span class="n">CUDA_CHECK_AND_EXIT</span><span class="p">(</span><span class="n">cudaDeviceSynchronize</span><span class="p">());</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The required shared memory can be obtained using <code class="code highlight cpp docutils literal highlight-cpp"><span class="n">GEMM</span><span class="o">::</span><span class="n">shared_memory_size</span></code>. It accounts for any padding declared using <a class="reference internal" href="api/operators.html#leadingdimension-operator-label"><span class="std std-ref">LeadingDimension Operator</span></a>.</p>
+<p>For simplicity, in the example we allocate managed memory for device matrices, assume that Volta architecture is used, and don’t check CUDA error codes returned by CUDA API functions. In addition, the function which copies data between global and shared memory is implemented in a naive way.
+Please check the full <a class="reference internal" href="examples.html#examples-introduction-examples-label"><span class="std std-ref">introduction_example.cu</span></a> example, as well as others shipped with cuBLASDx, for more detailed code.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cublasdx.hpp&gt;</span>
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cublasdx</span><span class="p">;</span>
+
+<span class="c1">// Naive copy; one thread does all the work</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">T</span><span class="o">&gt;</span>
+<span class="kr">inline</span><span class="w"> </span><span class="n">__device__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">naive_copy</span><span class="p">(</span><span class="n">T</span><span class="o">*</span><span class="w"> </span><span class="n">dst</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">T</span><span class="o">*</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">y</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">threadIdx</span><span class="p">.</span><span class="n">z</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">dst</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">src</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">&gt;</span>
+<span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">gemm_kernel</span><span class="p">(</span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">using</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">GEMM</span><span class="o">::</span><span class="n">value_type</span><span class="p">;</span>
+<span class="w">      </span><span class="k">extern</span><span class="w"> </span><span class="n">__shared__</span><span class="w"> </span><span class="n">value_type</span><span class="w"> </span><span class="n">smem</span><span class="p">[];</span>
+
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sa</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">;</span>
+<span class="w">      </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">sc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">smem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">;</span>
+
+<span class="w">      </span><span class="c1">// Load data from global to shared memory</span>
+<span class="w">      </span><span class="n">naive_copy</span><span class="p">(</span><span class="n">sa</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">);</span>
+<span class="w">      </span><span class="n">naive_copy</span><span class="p">(</span><span class="n">sb</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">);</span>
+<span class="w">      </span><span class="n">naive_copy</span><span class="p">(</span><span class="n">sc</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">c_size</span><span class="p">);</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Execute GEMM</span>
+<span class="w">      </span><span class="n">GEMM</span><span class="p">().</span><span class="n">execute</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span><span class="w"> </span><span class="n">sa</span><span class="p">,</span><span class="w"> </span><span class="n">sb</span><span class="p">,</span><span class="w"> </span><span class="n">beta</span><span class="p">,</span><span class="w"> </span><span class="n">sc</span><span class="p">);</span>
+<span class="w">      </span><span class="n">__syncthreads</span><span class="p">();</span>
+
+<span class="w">      </span><span class="c1">// Store data to global memory</span>
+<span class="w">      </span><span class="n">naive_copy</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">sc</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">c_size</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="n">introduction_example</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">t_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cublasdx</span><span class="o">::</span><span class="n">transpose_mode</span><span class="o">::</span><span class="n">non_transposed</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">GEMM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">decltype</span><span class="p">(</span><span class="n">Size</span><span class="o">&lt;</span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Precision</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Type</span><span class="o">&lt;</span><span class="n">type</span><span class="o">::</span><span class="n">real</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">TransposeMode</span><span class="o">&lt;</span><span class="n">t_mode</span><span class="p">,</span><span class="w"> </span><span class="n">t_mode</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Function</span><span class="o">&lt;</span><span class="n">function</span><span class="o">::</span><span class="n">MM</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">SM</span><span class="o">&lt;</span><span class="mi">700</span><span class="o">&gt;</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">Block</span><span class="p">()</span>
+<span class="w">                </span><span class="o">+</span><span class="w"> </span><span class="n">BlockDim</span><span class="o">&lt;</span><span class="mi">256</span><span class="o">&gt;</span><span class="p">());</span>
+
+<span class="w">  </span><span class="c1">// Allocate managed memory for A, B, C matrices in one go</span>
+<span class="w">  </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">abc</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w">        </span><span class="n">size</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">c_size</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w">        </span><span class="n">size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">value_type</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaMallocManaged</span><span class="p">(</span><span class="o">&amp;</span><span class="n">abc</span><span class="p">,</span><span class="w"> </span><span class="n">size_bytes</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// Generate data</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">size</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">abc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">double</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">size</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">abc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">abc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="p">;</span>
+<span class="w">  </span><span class="n">value_type</span><span class="o">*</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">abc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">a_size</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">b_size</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Invokes kernel with GEMM::block_dim threads in CUDA block</span>
+<span class="w">  </span><span class="n">gemm_kernel</span><span class="o">&lt;</span><span class="n">GEMM</span><span class="o">&gt;&lt;&lt;&lt;</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">block_dim</span><span class="p">,</span><span class="w"> </span><span class="n">GEMM</span><span class="o">::</span><span class="n">shared_memory_size</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaDeviceSynchronize</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">cudaFree</span><span class="p">(</span><span class="n">abc</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>It is important to notice that unlike the cuBLAS library cuBLASDx does not require moving data back to global memory after executing
+a BLAS operation. Nor does it require the input data to be loaded from global memory. Those properties can be a major performance advantage
+for certain use-cases. The list of possible optimizations includes but is not limited to:</p>
+<ul class="simple">
+<li><p>Fusing BLAS routines with custom pre- and post-processing.</p></li>
+<li><p>Fusing multiple BLAS operations together.</p></li>
+<li><p>Fusing BLAS and FFT operations (using cuFFTDx) together.</p></li>
+<li><p>Generating input matrices or parts of them.</p></li>
+</ul>
+</div>
+<div class="section" id="compilation">
+<h2>Compilation<a class="headerlink" href="#compilation" title="Permalink to this heading">¶</a></h2>
+<p>For instructions on how to compile programs with cuBLASDx see <a class="reference internal" href="installation.html#quick-installation-guide-label"><span class="std std-ref">Quick Installation Guide</span></a>.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Quick Installation Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="performance.html" class="btn btn-neutral float-right" title="Achieving High Performance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>  
+
+  <style>
+  a:link, a:visited {
+    color: #76b900;
+  }
+
+  a:hover {
+    color: #8c0;
+  }
+
+  .rst-content dl:not(.docutils) dt {
+    background: rgba(118, 185, 0, 0.1);
+    color: rgba(59,93,0,1);
+    border-top: solid 3px rgba(59,93,0,1);
+  }
+  </style>
+  
+
+</body>
+</html>
