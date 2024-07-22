@@ -4,10 +4,12 @@
 #include <Eigen/Eigenvalues>
 
 #include "FitUtils.h"
-//#include "MatMulABA.h"
+
 #include "defs.h"
 #include <cooperative_groups.h>
 #include <cooperative_groups/reduce.h>
+
+#include <cublasdx.hpp>
 
 namespace BrokenLine {
 
@@ -164,7 +166,80 @@ namespace BrokenLine {
 #ifdef __MULTIPLY_SERIAL
     C = A * B * A.transpose();
 #endif
+#ifdef __MULTIPLY_CUBLAS
+
+#endif
   }
+
+  template <unsigned int TileSize>
+  __device__ inline void cuBLASABeqC22(Rfit::Matrix2d* jacobianArray,
+                                     Rfit::line_fit* line_resultsArray,
+                                     cg::thread_block_tile<TileSize>& tile){
+    using GEMMABeqC =
+        decltype (cublasdx::Size<2,2,2>()+
+                 cublasdx::Precision<double>()+
+                 cublasdx::Type<cublasdx::type::real>()+
+                 cublasdx::TransposeMode<cublasdx::transpose_mode::non_transposed, cublasdx::transpose_mode::non_transposed>()+
+                 cublasdx::Function<cublasdx::function::MM>()+
+                 cublasdx::SM<860>()+
+                 cublasdx::LeadingDimension<2,2,2>()+
+                 cublasdx::Block()+
+                 cublasdx::BlockDim<32>());
+
+
+    using GEMMABteqC =
+        decltype (cublasdx::Size<2,2,2>()+
+                 cublasdx::Precision<double>()+
+                 cublasdx::Type<cublasdx::type::real>()+
+                 cublasdx::TransposeMode<cublasdx::transpose_mode::non_transposed, cublasdx::transpose_mode::transposed>()+
+                 cublasdx::Function<cublasdx::function::MM>()+
+                 cublasdx::SM<860>()+
+                 cublasdx::LeadingDimension<2,2,2>()+
+                 cublasdx::Block()+
+                 cublasdx::BlockDim<32>());
+
+
+      for(int idx = 0; idx < __NUMBER_OF_BLOCKS; idx++) {
+        GEMMABeqC().execute(1.0,  jacobianArray[idx].data(), line_resultsArray[idx].cov.data(), 0.0, line_resultsArray[idx].cov.data());
+        GEMMABteqC().execute(1.0, line_resultsArray[idx].cov.data(), jacobianArray[idx].data(), 0.0, line_resultsArray[idx].cov.data());
+      }
+    }
+
+    template <unsigned int TileSize>
+    __device__ inline void cuBLASABeqC33(Rfit::Matrix3d* jacobianArray,
+                                         karimaki_circle_fit* circle_resultsArray,
+                                         cg::thread_block_tile<TileSize>& tile){
+      using GEMMABeqC =
+          decltype (cublasdx::Size<3,3,3>()+
+                   cublasdx::Precision<double>()+
+                   cublasdx::Type<cublasdx::type::real>()+
+                   cublasdx::TransposeMode<cublasdx::transpose_mode::non_transposed, cublasdx::transpose_mode::non_transposed>()+
+                   cublasdx::Function<cublasdx::function::MM>()+
+                   cublasdx::SM<860>()+
+                   cublasdx::LeadingDimension<3,3,3>()+
+                   cublasdx::Block()+
+                   cublasdx::BlockDim<32>());
+
+
+      using GEMMABteqC =
+          decltype (cublasdx::Size<3,3,3>()+
+                   cublasdx::Precision<double>()+
+                   cublasdx::Type<cublasdx::type::real>()+
+                   cublasdx::TransposeMode<cublasdx::transpose_mode::non_transposed, cublasdx::transpose_mode::transposed>()+
+                   cublasdx::Function<cublasdx::function::MM>()+
+                   cublasdx::SM<860>()+
+                   cublasdx::LeadingDimension<3,3,3>()+
+                   cublasdx::Block()+
+                   cublasdx::BlockDim<32>());
+
+
+      for(int idx = 0; idx < __NUMBER_OF_BLOCKS; idx++) {
+        GEMMABeqC().execute(1.0,  jacobianArray[idx].data(), circle_resultsArray[idx].cov.data(), 0.0, circle_resultsArray[idx].cov.data());
+        GEMMABteqC().execute(1.0, circle_resultsArray[idx].cov.data(), jacobianArray[idx].data(), 0.0, circle_resultsArray[idx].cov.data());
+      }
+    }
+
+
 
   /*!
     \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a translation of the coordinate system, such that the old origin has coordinates (x0,y0) in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
@@ -175,12 +250,16 @@ namespace BrokenLine {
     \param jacobian passed by reference in order to save stack.
   */
   template <unsigned int TileSize>
-  __device__ inline void TranslateKarimaki(karimaki_circle_fit& circle,
+  __device__ inline void TranslateKarimaki(karimaki_circle_fit* circleArray,
                                            double x0,
                                            double y0,
-                                           Rfit::Matrix3d& jacobian,
+                                           Rfit::Matrix3d* jacobianArray,
                                            Rfit::Matrix3d& holder,
                                            cg::thread_block_tile<TileSize>& tile) {
+
+    auto& jacobian = jacobianArray[tile.meta_group_rank()];
+    auto& circle = circleArray[tile.meta_group_rank()];
+
     double A, U, BB, C, DO, DP, uu, xi, v, mu, lambda, zeta;
     DP = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
     DO = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
@@ -204,7 +283,9 @@ namespace BrokenLine {
 
     //circle.cov = jacobian * circle.cov * jacobian.transpose();  //TODO: cuBLASdX
 
-    jacobiMult(jacobian, circle.cov, circle.cov, holder, tile);
+    //jacobiMult(jacobian, circle.cov, circle.cov, holder, tile);
+
+    cuBLASABeqC33(jacobianArray, circleArray, tile);
   }
 
   /*!
@@ -419,16 +500,19 @@ namespace BrokenLine {
                                        const V4& fast_fit,
                                        const double B,
                                        PreparedBrokenLineData<N>& data,
-                                       karimaki_circle_fit& circle_results,
+                                       karimaki_circle_fit* circle_resultsArray,
                                        Rfit::VectorNd<N>& w,
                                        Rfit::VectorNplusONEd<N>& r_u,
                                        Rfit::MatrixNplusONEd<N>& C_U,
                                        Rfit::MatrixNd<N>& C_UBlock,
-                                       Rfit::Matrix3d& jacobian,
+                                       Rfit::Matrix3d* jacobianArray,
                                        Rfit::Matrix3d& holder,
                                        cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     u_int i = tile.thread_rank();
+
+    auto& jacobian = jacobianArray[tile.meta_group_rank()];
+    auto& circle_results = circle_resultsArray[tile.meta_group_rank()];
 
     circle_results.q = data.q;
     auto& radii = data.radii;
@@ -549,18 +633,20 @@ namespace BrokenLine {
 #endif
     tile.sync();
 
-    jacobiMult(jacobian, circle_results.cov, circle_results.cov, holder, tile);
+    //jacobiMult(jacobian, circle_results.cov, circle_results.cov, holder, tile);
+
+    cuBLASABeqC33(jacobianArray, circle_resultsArray, tile);
 
     //...Translate in the system in which the first corrected hit is the origin, adding the m.s. correction...
 
-    TranslateKarimaki(circle_results, 0.5 * (e - d)(0), 0.5 * (e - d)(1), jacobian, holder, tile);  //TODO: cuBLASDx
+    TranslateKarimaki(circle_resultsArray, 0.5 * (e - d)(0), 0.5 * (e - d)(1), jacobianArray, holder, tile);  //TODO: cuBLASDx
     if (tile.thread_rank() == 0) {
       circle_results.cov(0, 0) +=
           (1 + Rfit::sqr(slope)) * MultScatt(S(1) - S(0), B, fast_fit(2), 2, slope);  //TODO: BE AWARE!!
     }
     //...And translate back to the original system
 
-    TranslateKarimaki(circle_results, d(0), d(1), jacobian, holder, tile);  //TODO: cuBLASDx
+    TranslateKarimaki(circle_resultsArray, d(0), d(1), jacobianArray, holder, tile);  //TODO: cuBLASDx
 
     // compute chi2
 
@@ -600,15 +686,18 @@ namespace BrokenLine {
                                      const V4& fast_fit,
                                      const double B,
                                      const PreparedBrokenLineData<N>& data,
-                                     Rfit::line_fit& line_results,
+                                     Rfit::line_fit* line_resultsArray,
                                      Rfit::VectorNd<N>& w,
                                      Rfit::VectorNd<N>& r_u,
                                      Rfit::MatrixNd<N>& C_U,
-                                     Rfit::Matrix2d& jacobian,
+                                     Rfit::Matrix2d* jacobianArray,
                                      Rfit::Matrix2d& holder,
                                      cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     auto i = tile.thread_rank();
+
+    auto& jacobian = jacobianArray[tile.meta_group_rank()];
+    auto& line_results = line_resultsArray[tile.meta_group_rank()];
 
     const auto& radii = data.radii;
     const auto& S = data.S;
@@ -684,9 +773,14 @@ namespace BrokenLine {
     }
     tile.sync();
 
-    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
+    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();
 
-    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+    //jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+
+    cuBLASABeqC22(jacobianArray, line_resultsArray, tile);
+
+    __syncthreads();
+
 #ifdef __IFS_FOR_0_THREAD
     if (tile.thread_rank() == 0) {
 #endif
@@ -704,7 +798,10 @@ namespace BrokenLine {
     }
     tile.sync();
 
-    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+    cuBLASABeqC22(jacobianArray, line_resultsArray, tile);
+    __syncthreads();
+
+    //jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
     //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
 
     // compute chi2

@@ -74,7 +74,7 @@ USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
 export CUDA_ARCH := 70 86
-export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include #-I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include -I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/external/cutlass/include -I /home/stloufra/git/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include/cublasdx/include
+export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include -I /home/stloufra/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include -I /home/stloufra/pixeltrack-standalone/external/cublasdx/mathdx/24.01/external/cutlass/include -I /home/stloufra/pixeltrack-standalone/external/cublasdx/mathdx/24.01/include/cublasdx/include
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
 export CUDA_NVCC := $(CUDA_BASE)/bin/nvcc

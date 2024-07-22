@@ -247,8 +247,9 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
       BrokenLine::prepareBrokenLineData(hits, fast_fit, B, data[tileId], tile, pointsSZ[tileId]);
 
-      BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
-      BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
+      BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data[tileId], line, w[tileId], r_u[tileId], C_U[tileId], jacobian2, holder2[tileId], tile);
+
+      BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data[tileId], circle, w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3, holder3[tileId], tile);
 
     if(tile.thread_rank() ==0) {
 #endif
