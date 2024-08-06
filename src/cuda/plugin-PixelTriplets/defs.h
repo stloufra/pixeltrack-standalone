@@ -10,13 +10,13 @@
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
 
 //Memory (switch only inputs)
-//#define __BROKEN_LINE_WITH_SHARED_INPUTS
+#define __BROKEN_LINE_WITH_SHARED_INPUTS
 #define __BROKEN_LINE_WITH_SHARED_OUTPUTS
 #define __BROKEN_LINE_WITH_SHARED_LINGEBRA
 
 
 #define __BROKEN_LINE_ALL_THREADS
-#define  __NUMBER_OF_BLOCKS  8
+#define __GROUPS_PER_BLOCK 8
 
 //time
 //#define __TIME__KERNELS__BROKENLINE
@@ -29,8 +29,8 @@ extern std::chrono::duration<double> globalTimePenta(0) ;
 
 
 //Multiplication (only one)
-#define __MULTIPLY_ONE_STEP_PARALLEL
-//#define __MULTIPLY_MULTIPLE_STEPS_PARALLEL
+//#define __MULTIPLY_ONE_STEP_PARALLEL
+#define __MULTIPLY_MULTIPLE_STEPS_PARALLEL
 //#define __MULTIPLY_SERIAL
 
 //IFS

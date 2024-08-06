@@ -16,6 +16,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
   auto blockSize = 64; //if changed need to adjust shared memory
   auto numberOfBlocks = (maxNumberOfConcurrentFits_ + blockSize - 1) / blockSize;
 
+  auto numberOfBlocksMy =  numberOfBlocks;
+
   //  Fit internals
   auto hitsGPU_ = cms::cuda::make_device_unique<double[]>(
       maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
@@ -32,7 +34,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 #ifdef __TIME__KERNELS__BROKENLINE
     auto startTrip = time::now();
 #endif
-    kernelBLFit<3><<<numberOfBlocks, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
+    kernelBLFit<3><<<numberOfBlocksMy, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
                                                              bField_,
                                                              outputSoa_d,
                                                              hitsGPU_.get(),
@@ -52,7 +54,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     auto startQuad = time::now();
 #endif
 
-    kernelBLFit<4><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
+    kernelBLFit<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
                                                                  bField_,
                                                                  outputSoa_d,
                                                                  hitsGPU_.get(),
@@ -74,7 +76,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
 
 
-      kernelBLFit<4><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*4, 0, stream>>>(tupleMultiplicity_d,
+      kernelBLFit<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
                                                                    bField_,
                                                                    outputSoa_d,
                                                                    hitsGPU_.get(),
@@ -92,7 +94,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       cudaCheck(cudaGetLastError());
 
 
-      kernelBLFit<5><<<numberOfBlocks /*/ 4*/, __NUMBER_OF_BLOCKS*8, 0, stream>>>(tupleMultiplicity_d,
+      kernelBLFit<5><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *8, 0, stream>>>(tupleMultiplicity_d,
                                                                    bField_,
                                                                    outputSoa_d,
                                                                    hitsGPU_.get(),

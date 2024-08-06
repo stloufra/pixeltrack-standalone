@@ -147,7 +147,7 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
   // need to introduce const expresion for initialization of shared matrixes
 
-  assert(__NUMBER_OF_BLOCKS == tile.meta_group_size());
+  assert(__GROUPS_PER_BLOCK == tile.meta_group_size());
 
 
   // look in bin for this hit multiplicity
@@ -167,20 +167,45 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
       //DATA PREP
 #ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
+
+      using Stride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+
+      //GLOBAL MEMORY MAPPING
       Rfit::Map3xNd<N> Ghits(phits + local_idx);  //global memory map
       Rfit::Map4d Gfast_fit(pfast_fit + local_idx);
       Rfit::Map6xNf<N> Ghits_ge(phits_ge + local_idx);
 
-      __shared__ Rfit::Matrix3xNd<N> hits[__NUMBER_OF_BLOCKS];  //shared memory
-      __shared__ Eigen::Vector4d fast_fit[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::Matrix6xNf<N> hits_ge[__NUMBER_OF_BLOCKS];
+      //SHARED MEMORY PREPARATION
+      //__shared__ Rfit::Matrix3xNd<N> hits[__GROUPS_PER_BLOCK];  //shared memory
+      __shared__ double Shits[3*N*__GROUPS_PER_BLOCK];
+      //__shared__ Eigen::Vector4d fast_fit[__GROUPS_PER_BLOCK];
+      __shared__ double Sfast_fit[4*__GROUPS_PER_BLOCK];
+      //__shared__ Rfit::Matrix6xNf<N> hits_ge[__GROUPS_PER_BLOCK];
+      __shared__ float Shits_ge[6*N*__GROUPS_PER_BLOCK];
+
+      //SHARED MEMORY MAPPING
+      using Map_hits = Eigen::Map<Rfit::Matrix3xNd<N>, 0, Stride>;
+      using Map_fast_fit = Eigen::Map<Eigen::Vector4d, 0, Stride>;
+      using Map_hits_ge = Eigen::Map<Rfit::Matrix6xNf<N>, 0, Stride>;
+
+      Stride stride_hits(__GROUPS_PER_BLOCK, N*__GROUPS_PER_BLOCK);
+      Stride stride_fast_fit(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK); //TODO
+      Stride stride_hits_ge(__GROUPS_PER_BLOCK,N*__GROUPS_PER_BLOCK);      //TODO
+
+       auto tileId = tile.meta_group_rank();
+
+       Map_hits hits(Shits + tileId, stride_hits);
+       Map_fast_fit fast_fit(Sfast_fit + tileId, stride_fast_fit);
+       Map_hits_ge hits_ge(Shits_ge + tileId, stride_hits_ge);
 
 
-      auto tileId = tile.meta_group_rank();
+      // hits[tileId] = Ghits;
+      // fast_fit[tileId] = Gfast_fit;
+      // hits_ge[tileId] = Ghits_ge;
 
-      hits[tileId] = Ghits;
-      fast_fit[tileId] = Gfast_fit;
-      hits_ge[tileId] = Ghits_ge;
+      hits = Ghits;
+      fast_fit = Gfast_fit;
+      hits_ge = Ghits_ge;
 #else
       auto tileId = tile.meta_group_rank();
 
@@ -192,41 +217,41 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
 
       //structs for functions - prepare
-      __shared__ Rfit::Matrix2xNd<N> pointsSZ[__NUMBER_OF_BLOCKS];
+      __shared__ Rfit::Matrix2xNd<N> pointsSZ[__GROUPS_PER_BLOCK];
 
       //structs for functions - line fit
-      __shared__ Rfit::VectorNd<N> w[__NUMBER_OF_BLOCKS]; //used for circle fit as well
-      __shared__ Rfit::VectorNd<N> r_u[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::MatrixNd<N> C_U[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      __shared__ Rfit::VectorNd<N> w[__GROUPS_PER_BLOCK]; //used for circle fit as well
+      __shared__ Rfit::VectorNd<N> r_u[__GROUPS_PER_BLOCK];
+      __shared__ Rfit::MatrixNd<N> C_U[__GROUPS_PER_BLOCK];//used for circle fit as well
 
 
 
 
     //structs for functions -  circle fit
-      __shared__ Rfit::VectorNplusONEd<N> r_uc[__NUMBER_OF_BLOCKS];
-      __shared__ Rfit::MatrixNplusONEd<N> C_Uc[__NUMBER_OF_BLOCKS];
+      __shared__ Rfit::VectorNplusONEd<N> r_uc[__GROUPS_PER_BLOCK];
+      __shared__ Rfit::MatrixNplusONEd<N> C_Uc[__GROUPS_PER_BLOCK];
 
 #ifdef __BROKEN_LINE_WITH_SHARED_LINGEBRA
-      __shared__ Rfit::Matrix3d jacobian3[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix3d holder3[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      __shared__ Rfit::Matrix3d jacobian3[__GROUPS_PER_BLOCK];//used for circle fit as well
+      __shared__ Rfit::Matrix3d holder3[__GROUPS_PER_BLOCK];//used for circle fit as well
 
-      __shared__ Rfit::Matrix2d jacobian2[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      __shared__ Rfit::Matrix2d holder2[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      __shared__ Rfit::Matrix2d jacobian2[__GROUPS_PER_BLOCK];//used for circle fit as well
+      __shared__ Rfit::Matrix2d holder2[__GROUPS_PER_BLOCK];//used for circle fit as well
 #else
-      Rfit::Matrix3d jacobian3[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      Rfit::Matrix3d holder3[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      Rfit::Matrix3d jacobian3[__GROUPS_PER_BLOCK];//used for circle fit as well
+      Rfit::Matrix3d holder3[__GROUPS_PER_BLOCK];//used for circle fit as well
 
-      Rfit::Matrix2d jacobian2[__NUMBER_OF_BLOCKS];//used for circle fit as well
-      Rfit::Matrix2d holder2[__NUMBER_OF_BLOCKS];//used for circle fit as well
+      Rfit::Matrix2d jacobian2[__GROUPS_PER_BLOCK];//used for circle fit as well
+      Rfit::Matrix2d holder2[__GROUPS_PER_BLOCK];//used for circle fit as well
 #endif
 
 
       //PROCESS
 #ifdef __BROKEN_LINE_WITH_SHARED_OUTPUTS
-      __shared__ BrokenLine::PreparedBrokenLineData<N> data[__NUMBER_OF_BLOCKS];  //shared memory;
+      __shared__ BrokenLine::PreparedBrokenLineData<N> data[__GROUPS_PER_BLOCK];  //shared memory;
 
-      __shared__ BrokenLine::karimaki_circle_fit circle[__NUMBER_OF_BLOCKS];  //shared memory;
-      __shared__ Rfit::line_fit line[__NUMBER_OF_BLOCKS];                     //shared memory;
+      __shared__ BrokenLine::karimaki_circle_fit circle[__GROUPS_PER_BLOCK];  //shared memory;
+      __shared__ Rfit::line_fit line[__GROUPS_PER_BLOCK];                     //shared memory;
 #else
       BrokenLine::PreparedBrokenLineData<N> data;
 
@@ -236,11 +261,11 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
 #ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
 
-      BrokenLine::prepareBrokenLineData(hits[tileId], fast_fit[tileId], B, data[tileId], tile, pointsSZ[tileId]);
+      BrokenLine::prepareBrokenLineData(hits/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], tile, pointsSZ[tileId]);
 
-      BrokenLine::BL_Line_fit(hits_ge[tileId], fast_fit[tileId], B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
+      BrokenLine::BL_Line_fit(hits_ge/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
 
-      BrokenLine::BL_Circle_fit(hits[tileId], hits_ge[tileId], fast_fit[tileId], B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
+      BrokenLine::BL_Circle_fit(hits/*[tileId]*/, hits_ge/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
 
     if(tile.thread_rank() ==0) {
 #else
