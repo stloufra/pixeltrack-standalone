@@ -36,6 +36,10 @@ extern std::chrono::duration<double> globalTimePenta(0) ;
 //IFS
 #define __IFS_FOR_0_THREAD
 
+//layout
+//#define __NOT_COALESED_LAYOUT__
+#define __COALESED_LAYOUT__
+
 
 // -------------DEFS - UNSAFE - JUST FOR NOW - !!!!!!!!!!!!
 

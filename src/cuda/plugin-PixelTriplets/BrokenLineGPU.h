@@ -49,7 +49,11 @@ namespace BrokenLine {
     
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
-  __device__ inline double MultScatt(const double& length, const double B, const double R, int Layer, double slope) {
+  __device__ inline double MultScatt(const double& length,
+                                     const double B,
+                                     const double R,
+                                     int Layer,
+                                     double slope) {
     // limit R to 20GeV...
     auto pt2 = std::min(20., B * R);
     pt2 *= pt2;
@@ -81,7 +85,11 @@ namespace BrokenLine {
   }
 
   template <typename MATRIX, typename TILE, unsigned const int N>
-  __device__ inline void ABAteqC(MATRIX const& A, MATRIX const& B, MATRIX& C, MATRIX& holder, TILE& tile) {
+  __device__ inline void ABAteqC(MATRIX const& A,
+                                 MATRIX const& B,
+                                 MATRIX& C,
+                                 MATRIX& holder,
+                                 TILE& tile) {
 
     auto idx = tile.thread_rank();
     double tmp;
@@ -106,8 +114,14 @@ namespace BrokenLine {
     tile.sync();
   }
 
-  template <typename MATRIX, typename TILE, unsigned const int N>
-  __device__ inline void ABeqC(MATRIX const& A, MATRIX const& B, MATRIX& C, TILE& tile) {
+  template <typename MATRIX,
+            typename TILE,
+            typename M,
+            unsigned const int N>
+  __device__ inline void ABeqC(M const& A,
+                               MATRIX const& B,
+                               M& C,
+                               TILE& tile) {
     auto idx = tile.thread_rank();
 
     double tmp;
@@ -129,8 +143,14 @@ namespace BrokenLine {
     tile.sync();
   }
 
-  template <typename MATRIX, typename TILE, unsigned const int N>
-  __device__ inline void ABteqC(MATRIX const& A, MATRIX const& B, MATRIX& C, TILE& tile) {
+  template <typename MATRIX,
+            typename TILE,
+            typename M,
+            unsigned const int N>
+  __device__ inline void ABteqC(M const& A,
+                                M const& B,
+                                MATRIX& C,
+                                TILE& tile) {
     auto idx = tile.thread_rank();
 
     double tmp;
@@ -152,11 +172,17 @@ namespace BrokenLine {
     tile.sync();
   }
 
-  template <typename MATRIX, typename TILE>
-  __device__ inline void jacobiMult(MATRIX const& A, MATRIX const& B, MATRIX& C, MATRIX& holder, TILE& tile) {
+  template <typename MATRIX,
+            typename M,
+            typename TILE>
+  __device__ inline void jacobiMult(M const& A,
+                                    MATRIX const& B,
+                                    MATRIX& C,
+                                    M& holder,
+                                    TILE& tile) {
 #ifdef __MULTIPLY_MULTIPLE_STEPS_PARALLEL
-    ABeqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(A, B, holder, tile);
-    ABteqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(holder, A, C, tile);
+    ABeqC<MATRIX, TILE, M, MATRIX::ColsAtCompileTime>(A, B, holder, tile);
+    ABteqC<MATRIX, TILE, M, MATRIX::ColsAtCompileTime>(holder, A, C, tile);
 #endif
 #ifdef __MULTIPLY_ONE_STEP_PARALLEL
     ABAteqC<MATRIX, TILE, MATRIX::ColsAtCompileTime>(A, B, C, holder, tile);
@@ -174,12 +200,13 @@ namespace BrokenLine {
     \param y0 y coordinate of the translation vector.
     \param jacobian passed by reference in order to save stack.
   */
-  template <unsigned int TileSize>
+  template <unsigned int TileSize,
+            typename M3x3>
   __device__ inline void TranslateKarimaki(karimaki_circle_fit& circle,
                                            double x0,
                                            double y0,
-                                           Rfit::Matrix3d& jacobian,
-                                           Rfit::Matrix3d& holder,
+                                           M3x3& jacobian,
+                                           M3x3& holder,
                                            cg::thread_block_tile<TileSize>& tile) {
     double A, U, BB, C, DO, DP, uu, xi, v, mu, lambda, zeta;
     DP = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
@@ -209,20 +236,24 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the data needed for the Broken Line fit procedure that are mainly common for the circle and the line fit.
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
     \param B magnetic field in Gev/cm/c.
     \param results PreparedBrokenLineData to be filled (see description of PreparedBrokenLineData).
   */
-  template <typename M3xN, typename V4, int N, unsigned int TileSize>
+  template <typename M3xN,
+            typename V4,
+            typename M2xN,
+            int N,
+            unsigned int TileSize>
   __device__ inline void prepareBrokenLineData(const M3xN& hits,
                                                const V4& fast_fit,
                                                const double B,
                                                PreparedBrokenLineData<N>& results,
                                                cg::thread_block_tile<TileSize>& tile,
-                                               Rfit::Matrix2xNd<N>& pointsSZ) {
+                                               M2xN& pointsSZ) {
     constexpr auto n = N;
 
     u_int i = tile.thread_rank();
@@ -274,18 +305,21 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the n-by-n band matrix obtained minimizing the Broken Line's cost function w.r.t u. This is the whole matrix in the case of the line fit and the main n-by-n block in the case of the circle fit.
-    
+
     \param w weights of the first part of the cost function, the one with the measurements and not the angles (\sum_{i=1}^n w*(y_i-u_i)^2).
     \param S total distance traveled by the particle from the pre-fitted closest approach.
     \param VarBeta kink angles' variance.
-    
+
     \return the n-by-n matrix of the linear system
   */
-  template <int N, unsigned int TileSize>
-  __device__ inline void MatrixC_u(const Rfit::VectorNd<N>& w,
+  template <int N,
+            typename VN,
+            unsigned int TileSize,
+            typename MNxN>
+  __device__ inline void MatrixC_u(const VN& w,
                                    const Rfit::VectorNd<N>& S,
                                    const Rfit::VectorNd<N>& VarBeta,
-                                   Rfit::MatrixNd<N>& C_U,
+                                   MNxN& C_U,
                                    cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     u_int i = tile.thread_rank();
@@ -413,19 +447,28 @@ namespace BrokenLine {
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and \Delta\kappa and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
   */
-  template <typename M3xN, typename M6xN, typename V4, int N, unsigned int TileSize>
+  template <typename M3xN,
+            typename M6xN,
+            typename V4,
+            typename VN,
+            typename VNp1,
+            typename MNp1,
+            typename MNxN,
+            typename M3x3,
+            int N,
+            unsigned int TileSize>
   __device__ inline void BL_Circle_fit(const M3xN& hits,
                                        const M6xN& hits_ge,
                                        const V4& fast_fit,
                                        const double B,
                                        PreparedBrokenLineData<N>& data,
                                        karimaki_circle_fit& circle_results,
-                                       Rfit::VectorNd<N>& w,
-                                       Rfit::VectorNplusONEd<N>& r_u,
-                                       Rfit::MatrixNplusONEd<N>& C_U,
-                                       Rfit::MatrixNd<N>& C_UBlock,
-                                       Rfit::Matrix3d& jacobian,
-                                       Rfit::Matrix3d& holder,
+                                       VN& w,
+                                       VNp1& r_u,
+                                       MNp1& C_U,
+                                       MNxN& C_UBlock,
+                                       M3x3& jacobian,
+                                       M3x3& holder,
                                        cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     u_int i = tile.thread_rank();
@@ -595,17 +638,24 @@ namespace BrokenLine {
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
   */
-  template <typename V4, typename M6xN, int N, unsigned int TileSize>
+  template <typename V4,
+            typename M6xN,
+            typename VN1,
+            typename VN2,
+            typename MNxN,
+            typename M2x2,
+            int N,
+            unsigned int TileSize>
   __device__ inline void BL_Line_fit(const M6xN& hits_ge,
                                      const V4& fast_fit,
                                      const double B,
                                      const PreparedBrokenLineData<N>& data,
                                      Rfit::line_fit& line_results,
-                                     Rfit::VectorNd<N>& w,
-                                     Rfit::VectorNd<N>& r_u,
-                                     Rfit::MatrixNd<N>& C_U,
-                                     Rfit::Matrix2d& jacobian,
-                                     Rfit::Matrix2d& holder,
+                                     VN1& w,
+                                     VN2& r_u,
+                                     MNxN& C_U,
+                                     M2x2& jacobian,
+                                     M2x2& holder,
                                      cg::thread_block_tile<TileSize>& tile) {
     constexpr u_int n = N;
     auto i = tile.thread_rank();

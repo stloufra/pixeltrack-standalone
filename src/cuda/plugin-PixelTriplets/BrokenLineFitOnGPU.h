@@ -165,10 +165,12 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
       auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
 
+#ifdef __NOT_COALESED_LAYOUT__
+
       //DATA PREP
 #ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
 
-      using Stride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+      auto tileId = tile.meta_group_rank();
 
       //GLOBAL MEMORY MAPPING
       Rfit::Map3xNd<N> Ghits(phits + local_idx);  //global memory map
@@ -176,36 +178,15 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
       Rfit::Map6xNf<N> Ghits_ge(phits_ge + local_idx);
 
       //SHARED MEMORY PREPARATION
-      //__shared__ Rfit::Matrix3xNd<N> hits[__GROUPS_PER_BLOCK];  //shared memory
-      __shared__ double Shits[3*N*__GROUPS_PER_BLOCK];
-      //__shared__ Eigen::Vector4d fast_fit[__GROUPS_PER_BLOCK];
-      __shared__ double Sfast_fit[4*__GROUPS_PER_BLOCK];
-      //__shared__ Rfit::Matrix6xNf<N> hits_ge[__GROUPS_PER_BLOCK];
-      __shared__ float Shits_ge[6*N*__GROUPS_PER_BLOCK];
+      __shared__ Rfit::Matrix3xNd<N> hits[__GROUPS_PER_BLOCK];  //shared memory
+      __shared__ Eigen::Vector4d fast_fit[__GROUPS_PER_BLOCK];
+      __shared__ Rfit::Matrix6xNf<N> hits_ge[__GROUPS_PER_BLOCK];
 
       //SHARED MEMORY MAPPING
-      using Map_hits = Eigen::Map<Rfit::Matrix3xNd<N>, 0, Stride>;
-      using Map_fast_fit = Eigen::Map<Eigen::Vector4d, 0, Stride>;
-      using Map_hits_ge = Eigen::Map<Rfit::Matrix6xNf<N>, 0, Stride>;
+      hits[tileId] = Ghits;
+      fast_fit[tileId] = Gfast_fit;
+      hits_ge[tileId] = Ghits_ge;
 
-      Stride stride_hits(__GROUPS_PER_BLOCK, N*__GROUPS_PER_BLOCK);
-      Stride stride_fast_fit(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK); //TODO
-      Stride stride_hits_ge(__GROUPS_PER_BLOCK,N*__GROUPS_PER_BLOCK);      //TODO
-
-       auto tileId = tile.meta_group_rank();
-
-       Map_hits hits(Shits + tileId, stride_hits);
-       Map_fast_fit fast_fit(Sfast_fit + tileId, stride_fast_fit);
-       Map_hits_ge hits_ge(Shits_ge + tileId, stride_hits_ge);
-
-
-      // hits[tileId] = Ghits;
-      // fast_fit[tileId] = Gfast_fit;
-      // hits_ge[tileId] = Ghits_ge;
-
-      hits = Ghits;
-      fast_fit = Gfast_fit;
-      hits_ge = Ghits_ge;
 #else
       auto tileId = tile.meta_group_rank();
 
@@ -219,12 +200,11 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
       //structs for functions - prepare
       __shared__ Rfit::Matrix2xNd<N> pointsSZ[__GROUPS_PER_BLOCK];
 
+
       //structs for functions - line fit
       __shared__ Rfit::VectorNd<N> w[__GROUPS_PER_BLOCK]; //used for circle fit as well
       __shared__ Rfit::VectorNd<N> r_u[__GROUPS_PER_BLOCK];
       __shared__ Rfit::MatrixNd<N> C_U[__GROUPS_PER_BLOCK];//used for circle fit as well
-
-
 
 
     //structs for functions -  circle fit
@@ -261,13 +241,13 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
 
 #ifdef __BROKEN_LINE_WITH_SHARED_INPUTS
 
-      BrokenLine::prepareBrokenLineData(hits/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], tile, pointsSZ[tileId]);
+      BrokenLine::prepareBrokenLineData(hits[tileId], fast_fit[tileId], B, data[tileId], tile, pointsSZ[tileId]);
 
-      BrokenLine::BL_Line_fit(hits_ge/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
+      BrokenLine::BL_Line_fit(hits_ge[tileId], fast_fit[tileId], B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
 
-      BrokenLine::BL_Circle_fit(hits/*[tileId]*/, hits_ge/*[tileId]*/, fast_fit/*[tileId]*/, B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
+      BrokenLine::BL_Circle_fit(hits[tileId], hits_ge[tileId], fast_fit[tileId], B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
 
-    if(tile.thread_rank() ==0) {
+
 #else
 
       BrokenLine::prepareBrokenLineData(hits, fast_fit, B, data[tileId], tile, pointsSZ[tileId]);
@@ -275,10 +255,134 @@ __global__ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ t
       BrokenLine::BL_Line_fit(hits_ge, fast_fit, B, data[tileId], line[tileId], w[tileId], r_u[tileId], C_U[tileId], jacobian2[tileId], holder2[tileId], tile);
       BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data[tileId], circle[tileId], w[tileId], r_uc[tileId], C_Uc[tileId], C_U[tileId], jacobian3[tileId], holder3[tileId], tile);
 
-    if(tile.thread_rank() ==0) {
+
 #endif
 
+#endif
 
+#ifdef __COALESED_LAYOUT__
+
+    ///////////// INPUTS ///////////////
+    auto tileId = tile.meta_group_rank();
+    using Stride = Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>;
+
+    //GLOBAL MEMORY MAPPING
+    Rfit::Map3xNd<N> Ghits(phits + local_idx);  //global memory map
+    Rfit::Map4d Gfast_fit(pfast_fit + local_idx);
+    Rfit::Map6xNf<N> Ghits_ge(phits_ge + local_idx);
+
+    //SHARED MEMORY PREPARATION
+    __shared__ double Shits[3*N*__GROUPS_PER_BLOCK];
+    __shared__ double Sfast_fit[4*__GROUPS_PER_BLOCK];
+    __shared__ float Shits_ge[6*N*__GROUPS_PER_BLOCK];
+
+    //SHARED MEMORY MAPPING
+    using Map_hits = Eigen::Map<Rfit::Matrix3xNd<N>, 0, Stride>;
+    using Map_fast_fit = Eigen::Map<Eigen::Vector4d, 0, Stride>;
+    using Map_hits_ge = Eigen::Map<Rfit::Matrix6xNf<N>, 0, Stride>;
+
+    Stride stride_hits(__GROUPS_PER_BLOCK, N*__GROUPS_PER_BLOCK);
+    Stride stride_fast_fit(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK);
+    Stride stride_hits_ge(__GROUPS_PER_BLOCK,N*__GROUPS_PER_BLOCK);
+
+    Map_hits hits(Shits + tileId, stride_hits);
+    Map_fast_fit fast_fit(Sfast_fit + tileId, stride_fast_fit);
+    Map_hits_ge hits_ge(Shits_ge + tileId, stride_hits_ge);
+
+    hits = Ghits;
+    fast_fit = Gfast_fit;
+    hits_ge = Ghits_ge;
+
+    ///////////// FUNCTIONS ///////////////
+
+    __shared__ double SpointsSZ[2*N*__GROUPS_PER_BLOCK];
+    __shared__ double Sw[N*__GROUPS_PER_BLOCK];
+    __shared__ double Sr_u[N*__GROUPS_PER_BLOCK];
+    __shared__ double SC_U[N*N*__GROUPS_PER_BLOCK];
+    __shared__ double Sr_uc[(N+1)*__GROUPS_PER_BLOCK];
+    __shared__ double SC_Uc[(N+1)*(N+1)*__GROUPS_PER_BLOCK];
+
+    using Map_pointsSZ =  Eigen::Map<Rfit::Matrix2xNd<N>,       0, Stride>;
+    using Map_w =         Eigen::Map<Rfit::VectorNd<N>,         0, Stride>;
+    using Map_r_u =       Eigen::Map<Rfit::VectorNd<N>,         0, Stride>;
+    using Map_C_U =       Eigen::Map<Rfit::MatrixNd<N>,         0, Stride>;
+    using Map_r_uc =      Eigen::Map<Rfit::VectorNplusONEd<N>,  0, Stride>;
+    using Map_C_Uc =      Eigen::Map<Rfit::MatrixNplusONEd<N>,  0, Stride>;
+
+    Stride stride_pointsSZ(__GROUPS_PER_BLOCK, N*__GROUPS_PER_BLOCK);
+    Stride stride_w(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK);
+    Stride stride_r_u(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK);
+    Stride stride_C_U(__GROUPS_PER_BLOCK, N*__GROUPS_PER_BLOCK);
+    Stride stride_r_uc(__GROUPS_PER_BLOCK,__GROUPS_PER_BLOCK);
+    Stride stride_C_Uc(__GROUPS_PER_BLOCK,(N+1)*__GROUPS_PER_BLOCK);
+
+    Map_pointsSZ  pointsSZ(SpointsSZ + tileId, stride_pointsSZ);
+    Map_w         w(Sw + tileId, stride_w);
+    Map_r_u       r_u(Sr_u + tileId, stride_r_u);
+    Map_C_U       C_U(SC_U + tileId, stride_C_U);
+    Map_r_uc      r_uc(Sr_uc + tileId, stride_r_uc);
+    Map_C_Uc      C_Uc(SC_Uc + tileId, stride_C_Uc);
+
+
+    ///////////// LINGEBRA  ///////////////
+    __shared__ double Sjacobian3[   3*3*__GROUPS_PER_BLOCK];
+    __shared__ double Sholder3[     3*3*__GROUPS_PER_BLOCK];
+    __shared__ double Sjacobian2[   2*2*__GROUPS_PER_BLOCK];
+    __shared__ double Sholder2[     2*2*__GROUPS_PER_BLOCK];
+
+    using Map_jacobian3 =  Eigen::Map<Rfit::Matrix3d,0, Stride>;
+    using Map_jacobian2 =  Eigen::Map<Rfit::Matrix2d,0, Stride>;
+
+    Stride stride_jacobian3(__GROUPS_PER_BLOCK, 3*__GROUPS_PER_BLOCK);
+    Stride stride_jacobian2(__GROUPS_PER_BLOCK, 2*__GROUPS_PER_BLOCK);
+
+    Map_jacobian3   jacobian3(Sjacobian3 + tileId, stride_jacobian3);
+    Map_jacobian3   holder3(Sholder3 + tileId, stride_jacobian3);
+    Map_jacobian2   jacobian2(Sjacobian2 + tileId, stride_jacobian2);
+    Map_jacobian2   holder2(Sholder2 + tileId, stride_jacobian2);
+
+
+    /////////////  DATA   ///////////////
+    __shared__ BrokenLine::PreparedBrokenLineData<N> data[__GROUPS_PER_BLOCK];  //shared memory
+    __shared__ BrokenLine::karimaki_circle_fit circle[__GROUPS_PER_BLOCK];  //shared memory;
+    __shared__ Rfit::line_fit line[__GROUPS_PER_BLOCK];                     //shared memory;
+
+    BrokenLine::prepareBrokenLineData(hits,
+                                      fast_fit,
+                                      B,
+                                      data[tileId],
+                                      tile,
+                                      pointsSZ);
+
+    BrokenLine::BL_Line_fit(hits_ge,
+                            fast_fit,
+                            B,
+                            data[tileId],
+                            line[tileId],
+                            w,
+                            r_u,
+                            C_U,
+                            jacobian2,
+                            holder2,
+                            tile);
+
+    BrokenLine::BL_Circle_fit(hits,
+                              hits_ge,
+                              fast_fit,
+                              B,
+                              data[tileId],
+                              circle[tileId],
+                              w,
+                              r_uc,
+                              C_Uc,
+                              C_U,
+                              jacobian3,
+                              holder3,
+                              tile);
+
+
+#endif
+      if(tile.thread_rank() ==0) {
       results->stateAtBS.copyFromCircle(circle[tileId].par, circle[tileId].cov, line[tileId].par, line[tileId].cov, 1.f / float(B), tkid);
       results->pt(tkid) = float(B) / float(std::abs(circle[tileId].par(2)));
       results->eta(tkid) = asinhf(line[tileId].par(0));
