@@ -1,5 +1,5 @@
-#ifndef RecoPixelVertexing_PixelTrackFitting_interface_BrokenLine_h
-#define RecoPixelVertexing_PixelTrackFitting_interface_BrokenLine_h
+#ifndef RecoPixelVertexing_PixelTrackFitting_interface_BrokenLineGPU_h
+#define RecoPixelVertexing_PixelTrackFitting_interface_BrokenLineGPU_h
 
 #include <Eigen/Eigenvalues>
 
@@ -9,7 +9,7 @@
 #include <cooperative_groups.h>
 #include <cooperative_groups/reduce.h>
 
-namespace BrokenLine {
+namespace BrokenLine4 {
 
   namespace cg = cooperative_groups;
 
@@ -37,16 +37,16 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the Coulomb multiple scattering variance of the planar angle.
-    
+
     \param length length of the track in the material.
     \param B magnetic field in Gev/cm/c.
     \param R radius of curvature (needed to evaluate p).
     \param Layer denotes which of the four layers of the detector is the endpoint of the multiple scattered track. For example, if Layer=3, then the particle has just gone through the material between the second and the third layer.
-    
+
     \todo add another Layer variable to identify also the start point of the track, so if there are missing hits or multiple hits, the part of the detector that the particle has traversed can be exactly identified.
-    
+
     \warning the formula used here assumes beta=1, and so neglects the dependence of theta_0 on the mass of the particle at fixed momentum.
-    
+
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
   __device__ inline double MultScatt(const double& length,
@@ -70,9 +70,9 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the 2D rotation matrix that transforms the line y=slope*x into the line y=0.
-    
+
     \param slope tangent of the angle of rotation.
-    
+
     \return 2D rotation matrix.
   */
   __device__ inline Rfit::Matrix2d RotationMatrix(double slope) {
@@ -110,7 +110,7 @@ namespace BrokenLine {
       holder(row, col) = tmp;
     }
 
-      C = holder;
+    C = holder;
     tile.sync();
   }
 
@@ -194,7 +194,7 @@ namespace BrokenLine {
 
   /*!
     \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a translation of the coordinate system, such that the old origin has coordinates (x0,y0) in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
-    
+
     \param circle circle fit in the old coordinate system.
     \param x0 x coordinate of the translation vector.
     \param y0 y coordinate of the translation vector.
@@ -330,7 +330,7 @@ namespace BrokenLine {
       C_U = Rfit::MatrixNd<N>::Zero();
 #ifdef __IFS_FOR_0_THREAD
     }
-     tile.sync();
+    tile.sync();
 #endif
 
 
@@ -398,11 +398,11 @@ namespace BrokenLine {
 
   /*!
     \brief A very fast helix fit.
-    
+
     \param hits the measured hits.
-    
+
     \return (X0,Y0,R,tan(theta)).
-    
+
     \warning sign of theta is (intentionally, for now) mistaken for negative charges.
   */
 
@@ -432,7 +432,7 @@ namespace BrokenLine {
 
   /*!
     \brief Performs the Broken Line fit in the curved track case (that is, the fit parameters are the interceptions u and the curvature correction \Delta\kappa).
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
@@ -442,7 +442,7 @@ namespace BrokenLine {
     -par parameter of the line in this form: (phi, d, k); \n
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
-    
+
     \details The function implements the steps 2 and 3 of the Broken Line fit with the curvature correction.\n
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and \Delta\kappa and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
@@ -520,7 +520,7 @@ namespace BrokenLine {
 #ifdef __IFS_FOR_0_THREAD
     }
 #endif
-        //add the border to the C_u matrix
+    //add the border to the C_u matrix
     if (i < N) {
       C_U(i, n) = 0;
       if (i > 0 && i < n - 1) {
@@ -623,7 +623,7 @@ namespace BrokenLine {
 
   /*!
     \brief Performs the Broken Line fit in the straight track case (that is, the fit parameters are only the interceptions u).
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
@@ -633,7 +633,7 @@ namespace BrokenLine {
     -par parameter of the line in this form: (cot(theta), Zip); \n
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
-    
+
     \details The function implements the steps 2 and 3 of the Broken Line fit without the curvature correction.\n
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
@@ -731,51 +731,51 @@ namespace BrokenLine {
       if (tile.thread_rank() == 0) {
 #endif
         line_results.par(1) += -line_results.par(0) * S(0);
-    }
-    tile.sync();
+      }
+      tile.sync();
 
-    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
+      //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
 
-    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+      jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
 #ifdef __IFS_FOR_0_THREAD
-    if (tile.thread_rank() == 0) {
-#endif
-      // rotate to the original sz system
-      auto tmp1 = R(0, 0) - line_results.par(0) * R(0, 1);
-      jacobian(1, 1) = 1. / tmp1;
-      jacobian(0, 0) = jacobian(1, 1) * jacobian(1, 1);
-      jacobian(0, 1) = 0;
-      jacobian(1, 0) = line_results.par(1) * R(0, 1) * jacobian(0, 0);
-#ifndef __IFS_FOR_0_THREAD
       if (tile.thread_rank() == 0) {
 #endif
-        line_results.par(1) = line_results.par(1) * jacobian(1, 1);
-      line_results.par(0) = (R(0, 1) + line_results.par(0) * R(0, 0)) * jacobian(1, 1);
-    }
-    tile.sync();
+        // rotate to the original sz system
+        auto tmp1 = R(0, 0) - line_results.par(0) * R(0, 1);
+        jacobian(1, 1) = 1. / tmp1;
+        jacobian(0, 0) = jacobian(1, 1) * jacobian(1, 1);
+        jacobian(0, 1) = 0;
+        jacobian(1, 0) = line_results.par(1) * R(0, 1) * jacobian(0, 0);
+#ifndef __IFS_FOR_0_THREAD
+        if (tile.thread_rank() == 0) {
+#endif
+          line_results.par(1) = line_results.par(1) * jacobian(1, 1);
+          line_results.par(0) = (R(0, 1) + line_results.par(0) * R(0, 0)) * jacobian(1, 1);
+        }
+        tile.sync();
 
-    jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
-    //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
+        jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
+        //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
 
-    // compute chi2
-    line_results.chi2 = 0;
+        // compute chi2
+        line_results.chi2 = 0;
 
-    double tmp2 = 0;
-    if (i < N) {
-      tmp2 = w(i) * Rfit::sqr(Z(i) - u(i));
-      if (i > 0 && i < n - 1) {
-        tmp2 += Rfit::sqr(u(i - 1) / (S(i) - S(i - 1)) -
-                          u(i) * (S(i + 1) - S(i - 1)) / ((S(i + 1) - S(i)) * (S(i) - S(i - 1))) +
-                          u(i + 1) / (S(i + 1) - S(i))) /
-                VarBeta(i);
+        double tmp2 = 0;
+        if (i < N) {
+          tmp2 = w(i) * Rfit::sqr(Z(i) - u(i));
+          if (i > 0 && i < n - 1) {
+            tmp2 += Rfit::sqr(u(i - 1) / (S(i) - S(i - 1)) -
+                              u(i) * (S(i + 1) - S(i - 1)) / ((S(i + 1) - S(i)) * (S(i) - S(i - 1))) +
+                              u(i + 1) / (S(i + 1) - S(i))) /
+                    VarBeta(i);
+          }
+        }
+        cg::reduce_store_async(tile, &line_results.chi2, tmp2, cg::plus<double>());
+
+        // assert(line_results.chi2>=0);
       }
-    }
-    cg::reduce_store_async(tile, &line_results.chi2, tmp2, cg::plus<double>());
 
-    // assert(line_results.chi2>=0);
-  }
-
-  /*!
+      /*!
     \brief Helix fit by three step:
     -fast pre-fit (see Fast_fit() for further info); \n
     -circle fit of the hits projected in the transverse plane by Broken Line algorithm (see BL_Circle_fit() for further info); \n
@@ -809,39 +809,39 @@ namespace BrokenLine {
 
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
-  template <int N>
-  inline Rfit::helix_fit BL_Helix_fit(const Rfit::Matrix3xNd<N>& hits,
-                                      const Eigen::Matrix<float, 6, 4>& hits_ge,
-                                      const double B) {
-    Rfit::helix_fit helix;
-    Rfit::Vector4d fast_fit;
-    BL_Fast_fit(hits, fast_fit);
+      template <int N>
+      inline Rfit::helix_fit BL_Helix_fit(const Rfit::Matrix3xNd<N>& hits,
+                                          const Eigen::Matrix<float, 6, 4>& hits_ge,
+                                          const double B) {
+        Rfit::helix_fit helix;
+        Rfit::Vector4d fast_fit;
+        BL_Fast_fit(hits, fast_fit);
 
-    PreparedBrokenLineData<N> data;
-    karimaki_circle_fit circle;
-    Rfit::line_fit line;
-    Rfit::Matrix3d jacobian;
+        PreparedBrokenLineData<N> data;
+        karimaki_circle_fit circle;
+        Rfit::line_fit line;
+        Rfit::Matrix3d jacobian;
 
-    prepareBrokenLineData(hits, fast_fit, B, data);
-    BL_Line_fit(hits_ge, fast_fit, B, data, line);
-    BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
+        prepareBrokenLineData(hits, fast_fit, B, data);
+        BL_Line_fit(hits_ge, fast_fit, B, data, line);
+        BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
-    // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
-    jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * B / (Rfit::sqr(circle.par(2)) * circle.par(2));
-    circle.par(2) = B / std::abs(circle.par(2));
-    circle.cov = jacobian * circle.cov * jacobian.transpose();
+        // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
+        jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * B / (Rfit::sqr(circle.par(2)) * circle.par(2));
+        circle.par(2) = B / std::abs(circle.par(2));
+        circle.cov = jacobian * circle.cov * jacobian.transpose();
 
-    helix.par << circle.par, line.par;
-    helix.cov = Rfit::MatrixXd::Zero(5, 5);
-    helix.cov.block(0, 0, 3, 3) = circle.cov;
-    helix.cov.block(3, 3, 2, 2) = line.cov;
-    helix.q = circle.q;
-    helix.chi2_circle = circle.chi2;
-    helix.chi2_line = line.chi2;
+        helix.par << circle.par, line.par;
+        helix.cov = Rfit::MatrixXd::Zero(5, 5);
+        helix.cov.block(0, 0, 3, 3) = circle.cov;
+        helix.cov.block(3, 3, 2, 2) = line.cov;
+        helix.q = circle.q;
+        helix.chi2_circle = circle.chi2;
+        helix.chi2_line = line.chi2;
 
-    return helix;
-  }
+        return helix;
+      }
 
-}  // namespace BrokenLine
+    }  // namespace BrokenLine
 
-#endif  // RecoPixelVertexing_PixelTrackFitting_interface_BrokenLine_h
+#endif  // RecoPixelVertexing_PixelTrackFitting_interface_BrokenLineGPU_h

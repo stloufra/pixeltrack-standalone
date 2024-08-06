@@ -54,7 +54,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     auto startQuad = time::now();
 #endif
 
-    kernelBLFit<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
+    kernelBLFit4<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
                                                                  bField_,
                                                                  outputSoa_d,
                                                                  hitsGPU_.get(),
@@ -76,7 +76,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
 
 
-      kernelBLFit<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
+      kernelBLFit4<4><<<numberOfBlocksMy /*/ 4*/, __GROUPS_PER_BLOCK *4, 0, stream>>>(tupleMultiplicity_d,
                                                                    bField_,
                                                                    outputSoa_d,
                                                                    hitsGPU_.get(),
