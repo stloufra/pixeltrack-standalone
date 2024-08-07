@@ -58,9 +58,7 @@ namespace BrokenLine4 {
     auto pt2 = std::min(20., B * R);
     pt2 *= pt2;
     constexpr double XXI_0 = 0.06 / 16.;  //!< inverse of radiation length of the material in cm
-    //if(Layer==1) XXI_0=0.06/16.;
-    // else XXI_0=0.06/16.;
-    //XX_0*=1;
+
     constexpr double geometry_factor =
         0.7;  //!< number between 1/3 (uniform material) and 1 (thin scatterer) to be manually tuned
     constexpr double fact = geometry_factor * Rfit::sqr(13.6 / 1000.);
@@ -111,7 +109,7 @@ namespace BrokenLine4 {
     }
 
     C = holder;
-    tile.sync();
+   tile.sync();
   }
 
   template <typename MATRIX,
@@ -140,7 +138,7 @@ namespace BrokenLine4 {
 
       C(row, col) = tmp;
     }
-    tile.sync();
+    //tile.sync();
   }
 
   template <typename MATRIX,
@@ -169,7 +167,7 @@ namespace BrokenLine4 {
 
       C(row, col) = tmp;
     }
-    tile.sync();
+   // tile.sync();
   }
 
   template <typename MATRIX,
@@ -227,9 +225,7 @@ namespace BrokenLine4 {
 
     circle.par(0) = atan2(BB, C);
     circle.par(1) = A / (1 + U);
-    // circle.par(2)=circle.par(2);
 
-    //circle.cov = jacobian * circle.cov * jacobian.transpose();  //TODO: cuBLASdX
 
     jacobiMult(jacobian, circle.cov, circle.cov, holder, tile);
   }
@@ -268,39 +264,28 @@ namespace BrokenLine4 {
 
     Rfit::Matrix2d R = RotationMatrix(slope);
 
-    // calculate radii and s
     results.radii = hits.block(0, 0, 2, n) - fast_fit.head(2) * Rfit::MatrixXd::Constant(1, n, 1);
     e = -fast_fit(2) * fast_fit.head(2) / fast_fit.head(2).norm();
-    //for (i = 0; i < n; i++) {
 
-    if (i < N) {
       d = results.radii.block(0, i, 2, 1);
       results.s(i) = results.q * fast_fit(2) * atan2(Rfit::cross2D(d, e), d.dot(e));  // calculates the arc length
-    }
     Rfit::VectorNd<N> z = hits.block(2, 0, 1, n).transpose();
 
-    //calculate S and Z
     pointsSZ = Rfit::Matrix2xNd<N>::Zero();
 
-    if (i < N) {
       pointsSZ(0, i) = results.s(i);
       pointsSZ(1, i) = z(i);
       pointsSZ.block(0, i, 2, 1) = R * pointsSZ.block(0, i, 2, 1);  //TODO: cuBLASDx
-    }
     tile.sync();
 
     results.S = pointsSZ.block(0, 0, 1, n).transpose();
     results.Z = pointsSZ.block(1, 0, 1, n).transpose();
 
-    //calculate VarBeta
     results.VarBeta(0) = results.VarBeta(n - 1) = 0;
 
-    if (i < N) {
       results.VarBeta(i) = MultScatt(results.S(i + 1) - results.S(i), B, fast_fit(2), i + 2, slope) +
                            MultScatt(results.S(i) - results.S(i - 1), B, fast_fit(2), i + 1, slope);
-    }
     tile.sync();
-    //}
   }
 
   /*!
@@ -324,17 +309,8 @@ namespace BrokenLine4 {
     constexpr u_int n = N;
     u_int i = tile.thread_rank();
 
-#ifdef __IFS_FOR_0_THREAD
-    if (tile.thread_rank() == 0) {
-#endif
       C_U = Rfit::MatrixNd<N>::Zero();
-#ifdef __IFS_FOR_0_THREAD
-    }
-    tile.sync();
-#endif
 
-
-    if (i < N) {
       C_U(i, i) = w(i);
       if (i > 1)
         C_U(i, i) += 1. / (VarBeta(i - 1) * Rfit::sqr(S(i) - S(i - 1)));
@@ -354,46 +330,12 @@ namespace BrokenLine4 {
         C_U(i, i + 2) = 1. / (VarBeta(i + 1) * (S(i + 2) - S(i + 1)) * (S(i + 1) - S(i)));
 
       C_U(i, i) *= 0.5;
-    }
 
-    tile.sync();
+
+    //tile.sync();
     if (i == 0) {
       C_U += C_U.transpose();
     }
-  }
-
-  template <int N>
-  __device__ inline Rfit::MatrixNd<N> MatrixC_uLegacy(const Rfit::VectorNd<N>& w,
-                                                      const Rfit::VectorNd<N>& S,
-                                                      const Rfit::VectorNd<N>& VarBeta) {
-    constexpr u_int n = N;
-    u_int i;
-
-    Rfit::MatrixNd<N> C_U = Rfit::MatrixNd<N>::Zero();
-
-    for (i = 0; i < n; i++) {
-      C_U(i, i) = w(i);
-      if (i > 1)
-        C_U(i, i) += 1. / (VarBeta(i - 1) * Rfit::sqr(S(i) - S(i - 1)));
-      if (i > 0 && i < n - 1)
-        C_U(i, i) += (1. / VarBeta(i)) * Rfit::sqr((S(i + 1) - S(i - 1)) / ((S(i + 1) - S(i)) * (S(i) - S(i - 1))));
-      if (i < n - 2)
-        C_U(i, i) += 1. / (VarBeta(i + 1) * Rfit::sqr(S(i + 1) - S(i)));
-
-      if (i > 0 && i < n - 1)
-        C_U(i, i + 1) =
-            1. / (VarBeta(i) * (S(i + 1) - S(i))) * (-(S(i + 1) - S(i - 1)) / ((S(i + 1) - S(i)) * (S(i) - S(i - 1))));
-      if (i < n - 2)
-        C_U(i, i + 1) += 1. / (VarBeta(i + 1) * (S(i + 1) - S(i))) *
-                         (-(S(i + 2) - S(i)) / ((S(i + 2) - S(i + 1)) * (S(i + 1) - S(i))));
-
-      if (i < n - 2)
-        C_U(i, i + 2) = 1. / (VarBeta(i + 1) * (S(i + 2) - S(i + 1)) * (S(i + 1) - S(i)));
-
-      C_U(i, i) *= 0.5;
-    }
-
-    return C_U + C_U.transpose();
   }
 
   /*!
@@ -455,13 +397,13 @@ namespace BrokenLine4 {
             typename MNp1,
             typename MNxN,
             typename M3x3,
-            int N,
+            //int N,
             unsigned int TileSize>
   __device__ inline void BL_Circle_fit(const M3xN& hits,
                                        const M6xN& hits_ge,
                                        const V4& fast_fit,
                                        const double B,
-                                       PreparedBrokenLineData<N>& data,
+                                       PreparedBrokenLineData<4>& data,
                                        karimaki_circle_fit& circle_results,
                                        VN& w,
                                        VNp1& r_u,
@@ -470,7 +412,6 @@ namespace BrokenLine4 {
                                        M3x3& jacobian,
                                        M3x3& holder,
                                        cg::thread_block_tile<TileSize>& tile) {
-    constexpr u_int n = N;
     u_int i = tile.thread_rank();
 
     circle_results.q = data.q;
@@ -485,7 +426,6 @@ namespace BrokenLine4 {
       VarBeta *= 1. + Rfit::sqr(slope);  // the kink angles are projected!
     }
 
-    if (i < N) {
       Z(i) = radii.block(0, i, 2, 1).norm() - fast_fit(2);
 
       Rfit::Matrix2d V;   // covariance matrix
@@ -495,64 +435,46 @@ namespace BrokenLine4 {
       V(0, 0) = hits_ge.col(i)[0];            // x errors
       V(0, 1) = V(1, 0) = hits_ge.col(i)[1];  // cov_xy
       V(1, 1) = hits_ge.col(i)[2];            // y errors
-      //Slope=-radii(0,i)/radii(1,i);
       RR = RotationMatrix(-radii(0, i) / radii(1, i));
       w(i) = 1. / ((RR * V * RR.transpose())(1, 1));  // compute the orthogonal weight point by point
-    }
 
-    r_u(n) = 0;
-    tile.sync();
+    r_u(4) = 0;
+    //tile.sync(); //FIXME: this might cause problems
 
-    if (i < N) {
       r_u(i) = w(i) * Z(i);
-    }
 
-    tile.sync();
 
     MatrixC_u(w, s, VarBeta, C_UBlock, tile);
 
-#ifdef __IFS_FOR_0_THREAD
-    if (tile.thread_rank() == 0) {
-#endif
-      C_U.block(0, 0, n, n) = C_UBlock;
 
-      C_U(n, n) = 0;
-#ifdef __IFS_FOR_0_THREAD
-    }
-#endif
-    //add the border to the C_u matrix
-    if (i < N) {
-      C_U(i, n) = 0;
-      if (i > 0 && i < n - 1) {
-        C_U(i, n) +=
+      C_U.block(0, 0, 4, 4) = C_UBlock;
+
+      C_U(4, 4) = 0;
+
+      C_U(i, 4) = 0;
+      if (i > 0 && i < 4 - 1) {
+        C_U(i, 4) +=
             -(s(i + 1) - s(i - 1)) * (s(i + 1) - s(i - 1)) / (2. * VarBeta(i) * (s(i + 1) - s(i)) * (s(i) - s(i - 1)));
       }
       if (i > 1) {
-        C_U(i, n) += (s(i) - s(i - 2)) / (2. * VarBeta(i - 1) * (s(i) - s(i - 1)));
+        C_U(i, 4) += (s(i) - s(i - 2)) / (2. * VarBeta(i - 1) * (s(i) - s(i - 1)));
       }
-      if (i < n - 2) {
-        C_U(i, n) += (s(i + 2) - s(i)) / (2. * VarBeta(i + 1) * (s(i + 1) - s(i)));
+      if (i < 4 - 2) {
+        C_U(i, 4) += (s(i + 2) - s(i)) / (2. * VarBeta(i + 1) * (s(i + 1) - s(i)));
       }
-      C_U(n, i) = C_U(i, n);
-      if (i > 0 && i < n - 1) {
+      C_U(4, i) = C_U(i, 4);
+      if (i > 0 && i < 4 - 1) {
         double tmp3 = Rfit::sqr(s(i + 1) - s(i - 1)) / (4. * VarBeta(i));
-        atomicAdd(&C_U(n, n), tmp3);
-      }
+        atomicAdd(&C_U(4, 4), tmp3);
     }
 
-    tile.sync();
+   tile.sync();
 
-#ifdef CPP_DUMP
-    std::cout << "CU5\n" << C_U << std::endl;
-#endif
-    Rfit::MatrixNplusONEd<N> I;
+    Rfit::MatrixNplusONEd<4> I;
     math::cholesky::invert(C_U, I);
-    // Rfit::MatrixNplusONEd<N> I = C_U.inverse();
-#ifdef CPP_DUMP
-    std::cout << "I5\n" << I << std::endl;
-#endif
 
-    Rfit::VectorNplusONEd<N> u = I * r_u;  // obtain the fitted parameters by solving the linear system
+
+    Rfit::VectorNplusONEd<4> u = I * r_u;  // obtain the fitted parameters by solving the linear system
     if (tile.thread_rank() == 0) {
       // compute (phi, d_ca, k) in the system in which the midpoint of the first two corrected hits is the origin...
 
@@ -561,12 +483,10 @@ namespace BrokenLine4 {
     }
     Rfit::Vector2d d = hits.block(0, 0, 2, 1) + (-Z(0) + u(0)) * radii.block(0, 0, 2, 1);
     Rfit::Vector2d e = hits.block(0, 1, 2, 1) + (-Z(1) + u(1)) * radii.block(0, 1, 2, 1);
-#ifdef __IFS_FOR_0_THREAD
-    if (tile.thread_rank() == 0) {
-#endif
+
       circle_results.par << atan2((e - d)(1), (e - d)(0)),
           -circle_results.q * (fast_fit(2) - sqrt(Rfit::sqr(fast_fit(2)) - 0.25 * (e - d).squaredNorm())),
-          circle_results.q * (1. / fast_fit(2) + u(n));
+          circle_results.q * (1. / fast_fit(2) + u(4));
 
       assert(circle_results.q * circle_results.par(1) <= 0);
 
@@ -582,15 +502,9 @@ namespace BrokenLine4 {
               sqrt(Rfit::sqr(2 * fast_fit(2)) - tmp1),
           0, 0, 0, circle_results.q;
 
-      circle_results.cov << I(0, 0), I(0, 1), I(0, n), I(1, 0), I(1, 1), I(1, n), I(n, 0), I(n, 1), I(n, n);
+      circle_results.cov << I(0, 0), I(0, 1), I(0, 4), I(1, 0), I(1, 1), I(1, 4), I(4, 0), I(4, 1), I(4, 4);
 
-      // circle_results.cov = jacobian * circle_results.cov * jacobian.transpose();  //TODO: cuBLASDx
-
-      //ABAteqC33(jacobian, circle_results.cov, circle_results.cov, holder, tile);
-#ifdef __IFS_FOR_0_THREAD
-    }
-#endif
-    tile.sync();
+    //tile.sync();
 
     jacobiMult(jacobian, circle_results.cov, circle_results.cov, holder, tile);
 
@@ -608,17 +522,16 @@ namespace BrokenLine4 {
     // compute chi2
 
     float tmp2 = 0;
-    if (i < N) {
+
       tmp2 = w(i) * Rfit::sqr(Z(i) - u(i));
-      if (i > 0 && i < n - 1)
+      if (i > 0 && i < 4 - 1)
         tmp2 += Rfit::sqr(u(i - 1) / (s(i) - s(i - 1)) -
                           u(i) * (s(i + 1) - s(i - 1)) / ((s(i + 1) - s(i)) * (s(i) - s(i - 1))) +
-                          u(i + 1) / (s(i + 1) - s(i)) + (s(i + 1) - s(i - 1)) * u(n) / 2) /
+                          u(i + 1) / (s(i + 1) - s(i)) + (s(i + 1) - s(i - 1)) * u(4) / 2) /
                 VarBeta(i);
-    }
+
     cg::reduce_store_async(tile, &circle_results.chi2, tmp2, cg::plus<float>());
 
-    // assert(circle_results.chi2>=0);
   }
 
   /*!
@@ -644,12 +557,12 @@ namespace BrokenLine4 {
             typename VN2,
             typename MNxN,
             typename M2x2,
-            int N,
+            //int N,
             unsigned int TileSize>
   __device__ inline void BL_Line_fit(const M6xN& hits_ge,
                                      const V4& fast_fit,
                                      const double B,
-                                     const PreparedBrokenLineData<N>& data,
+                                     const PreparedBrokenLineData<4>& data,
                                      Rfit::line_fit& line_results,
                                      VN1& w,
                                      VN2& r_u,
@@ -657,7 +570,7 @@ namespace BrokenLine4 {
                                      M2x2& jacobian,
                                      M2x2& holder,
                                      cg::thread_block_tile<TileSize>& tile) {
-    constexpr u_int n = N;
+    constexpr u_int n = 4;
     auto i = tile.thread_rank();
 
     const auto& radii = data.radii;
@@ -670,9 +583,9 @@ namespace BrokenLine4 {
 
     Rfit::Matrix3d V = Rfit::Matrix3d::Zero();                 // covariance matrix XYZ
     Rfit::Matrix2x3d JacobXYZtosZ = Rfit::Matrix2x3d::Zero();  // jacobian for computation of the error on s (xyz -> sz)
-    w = Rfit::VectorNd<N>::Zero();
+    w = Rfit::VectorNd<4>::Zero();
 
-    if (i < N) {
+
       V(0, 0) = hits_ge.col(i)[0];            // x errors
       V(0, 1) = V(1, 0) = hits_ge.col(i)[1];  // cov_xy
       V(0, 2) = V(2, 0) = hits_ge.col(i)[3];  // cov_xz
@@ -686,33 +599,24 @@ namespace BrokenLine4 {
       w(i) = 1. / ((R * JacobXYZtosZ * V * JacobXYZtosZ.transpose() * R.transpose())(  //TODO: cublasDx
                       1,
                       1));  // compute the orthogonal weight point by point
-    }
 
-    tile.sync();
 
-    if (i < N) {
+    //tile.sync(); // FIXME: this might cause problems
+
       r_u(i) = w(i) * Z(i);
-    }
 
-#ifdef CPP_DUMP
-    std::cout << "CU4\n" << MatrixC_u(w, S, VarBeta) << std::endl;
-#endif
+
 
     MatrixC_u(w, S, VarBeta, C_U, tile);
 
-    Rfit::MatrixNd<N> I;
+    Rfit::MatrixNd<4> I;
 
     tile.sync();
     math::cholesky::invert(C_U, I);
-    //    Rfit::MatrixNd<N> I=MatrixC_u(w,S,VarBeta).inverse();
-#ifdef CPP_DUMP
-    std::cout << "I4\n" << I << std::endl;
-#endif
 
-    Rfit::VectorNd<N> u = I * r_u;  // obtain the fitted parameters by solving the linear system
-#ifdef __IFS_FOR_0_THREAD
-    if (tile.thread_rank() == 0) {
-#endif
+
+    Rfit::VectorNd<4> u = I * r_u;  // obtain the fitted parameters by solving the linear system
+
       // line parameters in the system in which the first hit is the origin and with axis along SZ
       line_results.par << (u(1) - u(0)) / (S(1) - S(0)), u(0);
       auto idiff = 1. / (S(1) - S(0));
@@ -727,41 +631,36 @@ namespace BrokenLine4 {
       jacobian(0, 1) = 0;
       jacobian(1, 0) = -S(0);
       jacobian(1, 1) = 1.;
-#ifndef __IFS_FOR_0_THREAD
+
       if (tile.thread_rank() == 0) {
-#endif
         line_results.par(1) += -line_results.par(0) * S(0);
       }
-      tile.sync();
+      //tile.sync();
 
-      //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cuBLASDx
 
       jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
-#ifdef __IFS_FOR_0_THREAD
-      if (tile.thread_rank() == 0) {
-#endif
+
         // rotate to the original sz system
         auto tmp1 = R(0, 0) - line_results.par(0) * R(0, 1);
         jacobian(1, 1) = 1. / tmp1;
         jacobian(0, 0) = jacobian(1, 1) * jacobian(1, 1);
         jacobian(0, 1) = 0;
         jacobian(1, 0) = line_results.par(1) * R(0, 1) * jacobian(0, 0);
-#ifndef __IFS_FOR_0_THREAD
+
+
         if (tile.thread_rank() == 0) {
-#endif
+
           line_results.par(1) = line_results.par(1) * jacobian(1, 1);
           line_results.par(0) = (R(0, 1) + line_results.par(0) * R(0, 0)) * jacobian(1, 1);
         }
-        tile.sync();
+        //tile.sync();
 
         jacobiMult(jacobian, line_results.cov, line_results.cov, holder, tile);
-        //line_results.cov = jacobian * line_results.cov * jacobian.transpose();  //TODO: cublasDx
 
-        // compute chi2
         line_results.chi2 = 0;
 
         double tmp2 = 0;
-        if (i < N) {
+        //if (i < N) {
           tmp2 = w(i) * Rfit::sqr(Z(i) - u(i));
           if (i > 0 && i < n - 1) {
             tmp2 += Rfit::sqr(u(i - 1) / (S(i) - S(i - 1)) -
@@ -769,10 +668,10 @@ namespace BrokenLine4 {
                               u(i + 1) / (S(i + 1) - S(i))) /
                     VarBeta(i);
           }
-        }
+
         cg::reduce_store_async(tile, &line_results.chi2, tmp2, cg::plus<double>());
 
-        // assert(line_results.chi2>=0);
+
       }
 
       /*!
@@ -809,39 +708,7 @@ namespace BrokenLine4 {
 
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
-      template <int N>
-      inline Rfit::helix_fit BL_Helix_fit(const Rfit::Matrix3xNd<N>& hits,
-                                          const Eigen::Matrix<float, 6, 4>& hits_ge,
-                                          const double B) {
-        Rfit::helix_fit helix;
-        Rfit::Vector4d fast_fit;
-        BL_Fast_fit(hits, fast_fit);
-
-        PreparedBrokenLineData<N> data;
-        karimaki_circle_fit circle;
-        Rfit::line_fit line;
-        Rfit::Matrix3d jacobian;
-
-        prepareBrokenLineData(hits, fast_fit, B, data);
-        BL_Line_fit(hits_ge, fast_fit, B, data, line);
-        BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
-
-        // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
-        jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -std::abs(circle.par(2)) * B / (Rfit::sqr(circle.par(2)) * circle.par(2));
-        circle.par(2) = B / std::abs(circle.par(2));
-        circle.cov = jacobian * circle.cov * jacobian.transpose();
-
-        helix.par << circle.par, line.par;
-        helix.cov = Rfit::MatrixXd::Zero(5, 5);
-        helix.cov.block(0, 0, 3, 3) = circle.cov;
-        helix.cov.block(3, 3, 2, 2) = line.cov;
-        helix.q = circle.q;
-        helix.chi2_circle = circle.chi2;
-        helix.chi2_line = line.chi2;
-
-        return helix;
-      }
 
     }  // namespace BrokenLine
 
-#endif  // RecoPixelVertexing_PixelTrackFitting_interface_BrokenLineGPU_h
+#endif  // RecoPixelVertexing_PixelTrackFitting_interface_BrokenLineGPUq_h

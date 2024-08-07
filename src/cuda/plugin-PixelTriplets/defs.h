@@ -34,7 +34,7 @@ extern std::chrono::duration<double> globalTimePenta(0) ;
 //#define __MULTIPLY_SERIAL
 
 //IFS
-#define __IFS_FOR_0_THREAD
+//#define __IFS_FOR_0_THREAD
 
 //layout
 #define __NOT_COALESED_LAYOUT__
